@@ -22,6 +22,9 @@ outputs/
 wandb/
 mlruns/
 logs/
+
+# Local secrets
+.env
 d3rlpy_data/
 d3rlpy_logs/
 

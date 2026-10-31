@@ -23,6 +23,13 @@ Sources (Section 11 of the proposal):
   (RSRP/RSRQ/SINR), mobility mode and anonymized tower id.
 - RIPE Atlas REST API needs an account key; M-Lab NDT needs no key.
 
+RIPE Atlas: the account key (in .env) is read-only, so we use public
+measurement results instead of creating custom measurements. First
+sample: 10-minute slice of built-in ping measurement 1001 (k
+root-server), 31,149 rows from ~14,000 residential probes, mean RTT
+38 ms, p95 143 ms -> raw/ripe_atlas_public_1001.json. Fetch more with
+`python scripts/ripe_atlas.py public-results --measurement-id 1001 ...`.
+
 ## Live collection
 
 Two collectors run continuously (scripts/collect_traces.py):
