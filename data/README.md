@@ -42,6 +42,10 @@ Two collectors run continuously (scripts/collect_traces.py):
   200 ms and iperf3 to bigguy every 10 min
   (data/raw/collected/home_broadband.csv).
 
+Planned: `five_g_phone` — same collector with `--interface` bound to
+the phone hotspot (USB tethering preferred), longer iperf interval to
+limit metered data use.
+
 ## Processed (Section 11.2)
 
 Run `python scripts/preprocess_traces.py all` to rebuild. Output in

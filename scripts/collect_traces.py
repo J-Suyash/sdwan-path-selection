@@ -58,8 +58,9 @@ def iperf_loop(writer: Writer, args: argparse.Namespace, iperf: str) -> None:
     while True:
         try:
             iperf_target = args.iperf_target or args.target
+            bind_args = ["--bind-dev", args.interface] if args.interface else []
             proc = subprocess.run(
-                [iperf, "-c", iperf_target, "-t", str(args.iperf_duration), "-J"],
+                [iperf, "-c", iperf_target, "-t", str(args.iperf_duration), *bind_args, "-J"],
                 capture_output=True,
                 text=True,
                 timeout=args.iperf_duration + 30,
@@ -93,6 +94,11 @@ def main() -> None:
         default=None,
         help="iperf3 server address; defaults to --target",
     )
+    ap.add_argument(
+        "--interface",
+        default=None,
+        help="network interface to bind (e.g. wlan0 for the phone hotspot)",
+    )
     args = ap.parse_args()
 
     ping = shutil.which("ping")
@@ -108,8 +114,12 @@ def main() -> None:
     else:
         writer.row(args.label, "meta", bps="iperf3 missing; ping only")
 
+    ping_cmd = [ping, "-n"]
+    if args.interface:
+        ping_cmd += ["-I", args.interface]
+    ping_cmd += ["-i", str(args.ping_interval), args.target]
     proc = subprocess.Popen(
-        [ping, "-n", "-i", str(args.ping_interval), args.target],
+        ping_cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
         text=True,
