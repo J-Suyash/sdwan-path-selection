@@ -6,7 +6,7 @@ here. Nothing in `raw/`, `interim/` or `processed/` is committed to git.
 Sources (Section 11 of the proposal):
 
 - LEO: WetLinks (downloaded), LENS (downloaded)
-- 5G: Raca et al. (downloaded), Lumos5G (pending IEEE DataPort account)
+- 5G: Lumos5G (downloaded), Raca et al. (downloaded)
 - Broadband: RIPE Atlas, M-Lab NDT (pending)
 - Co-located broadband + 5G: team-collected (pending probe target)
 
@@ -17,6 +17,8 @@ Sources (Section 11 of the proposal):
 - `raw/LENS/` — cloned from github.com/clarkzjw/LENS (~23 MB).
 - `raw/raca5g/` — Zenodo record 3751194, dataset zip extracted
   (~23 MB of per-second 5G throughput CSVs by app/mobility mode).
-- Lumos5G dataset lives on IEEE DataPort (free account required):
-  https://ieee-dataport.org/open-access/lumos5g-dataset
+- `raw/lumos5g/` — downloaded from networking.umn.edu/lumos5g
+  (Lumos5G-v1.0.zip, provided by the team). The CSV has 68,118 rows of
+  per-second 5G downlink throughput (iPerf) with signal-strength context
+  (RSRP/RSRQ/SINR), mobility mode and anonymized tower id.
 - RIPE Atlas REST API needs an account key; M-Lab NDT needs no key.
