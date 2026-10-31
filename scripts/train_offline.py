@@ -25,6 +25,7 @@ def main() -> None:
     ap.add_argument("--steps", type=int, default=50000)
     ap.add_argument("--eval-episodes", type=int, default=5)
     ap.add_argument("--eval-seed", type=int, default=0)
+    ap.add_argument("--device", default="cpu")
     ap.add_argument("--out", default="analysis/offline_results.csv")
     args = ap.parse_args()
 
@@ -34,9 +35,9 @@ def main() -> None:
 
     t0 = time.perf_counter()
     if args.algo == "discrete_bc":
-        algo = DiscreteBCConfig(batch_size=256).create(device="cpu")
+        algo = DiscreteBCConfig(batch_size=256).create(device=args.device)
     else:
-        algo = DiscreteCQLConfig(batch_size=256).create(device="cpu")
+        algo = DiscreteCQLConfig(batch_size=256).create(device=args.device)
     algo.fit(
         dataset,
         n_steps=args.steps,

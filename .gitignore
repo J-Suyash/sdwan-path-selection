@@ -9,6 +9,13 @@ __pycache__/
 .venv/
 venv/
 
+# Trained models
+offline/models/
+
+# Colab upload bundles (rebuilt with git archive / zip)
+colab/repo.zip
+colab/datasets.zip
+
 # Data (traces and datasets can be large; keep raw downloads out of git)
 data/raw/
 data/interim/
