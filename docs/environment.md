@@ -34,16 +34,19 @@ scripts/check_cql_cartpole.py).
 ## Infrastructure (VPS)
 
 - `alc` — Ubuntu 24.04, 2 cores / 7.8 GiB, public IP 94.103.167.15
-  (answers ICMP publicly), Tailscale 100.76.255.20. SSH: `sxtr@alc`
-  with default key. Runs the vps2vps collector (ping every 200 ms to
-  bigguy, CSV at ~/sdwan-collect/traces_vps2vps.csv).
+  (answers ICMP publicly), Tailscale 100.76.255.20, ~23 GB disk free.
+  SSH: `sxtr@alc` with default key. No longer runs a collector; only
+  serves as the ping target.
 - `bigguy` — Ubuntu 24.04, 2 cores / 11 GiB, public IP 144.24.130.58
   (Oracle Cloud; internet only reaches port 22 — ICMP and 5201 are
   filtered by the VCN). Tailscale 100.113.191.84. SSH: key
   `~/.ssh/bigguy`, `ubuntu@144.24.130.58`. iperf3 server runs as a
   systemd service on port 5201, reachable over Tailscale. Tailscale
   SSH is disabled (`tailscale set --ssh=false`), so `ubuntu@bigguy`
-  and the public IP both reach normal sshd.
+  and the public IP both reach normal sshd. ~73 GB disk free, so it is
+  the collector host: runs the vps2vps collector (ping every 200 ms to
+  alc's public IP, CSV at ~/sdwan-collect/traces_vps2vps.csv) plus the
+  iperf3 server.
 - Home laptop collector (this machine): pings alc's public IP every
   200 ms, iperf3 every 10 min to bigguy over the direct Tailscale
   path. CSV: data/raw/collected/home_broadband.csv. Stop with

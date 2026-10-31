@@ -84,6 +84,11 @@ def main() -> None:
     ap.add_argument("--iperf-interval", type=int, default=600)
     ap.add_argument("--iperf-duration", type=int, default=10)
     ap.add_argument(
+        "--no-iperf",
+        action="store_true",
+        help="disable throughput tests; ping only",
+    )
+    ap.add_argument(
         "--iperf-target",
         default=None,
         help="iperf3 server address; defaults to --target",
@@ -97,7 +102,7 @@ def main() -> None:
 
     writer = Writer(args.out)
     writer.row(args.label, "meta", bps=f"start target={args.target} ping_interval={args.ping_interval}")
-    if iperf:
+    if iperf and not args.no_iperf:
         writer.row(args.label, "meta", bps=f"iperf3={iperf}")
         threading.Thread(target=iperf_loop, args=(writer, args, iperf), daemon=True).start()
     else:

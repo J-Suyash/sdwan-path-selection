@@ -27,8 +27,10 @@ Sources (Section 11 of the proposal):
 
 Two collectors run continuously (scripts/collect_traces.py):
 
-- `vps2vps` — on alc, pinging bigguy every 200 ms
-  (~/sdwan-collect/traces_vps2vps.csv on alc).
+- `vps2vps` — on bigguy (73 GB free), pinging alc's public IP every
+  200 ms (~/sdwan-collect/traces_vps2vps.csv on bigguy). The earlier
+  alc-hosted segment is preserved as vps2vps_alc_legacy.csv on bigguy
+  and in data/raw/collected/.
 - `home_broadband` — on the team laptop, pinging alc's public IP every
   200 ms and iperf3 to bigguy every 10 min
   (data/raw/collected/home_broadband.csv).
