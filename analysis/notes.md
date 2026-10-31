@@ -33,3 +33,29 @@ Known calibration items:
   halve RTT when mapping to one-way delay or revisit SLA thresholds in
   the Phase 4 Mininet calibration. Affects absolute violation counts,
   not the relative ranking of policies.
+
+## 2026-11-01 — Phase 3 first offline runs
+
+| algo | dataset | cost/h | voice viol/h | switches/min | note |
+|---|---|---|---|---|---|
+| discrete BC | d1 | 0.421 | 3.0 | 0.05 | matches incumbent (0.42/3): data pipeline sound |
+| discrete BC | d2 | 0.421 | 2.0 | 0.05 | mixture still imitates threshold-like behavior |
+| discrete CQL | d1 | 0.421 | 5.6 | 0.13 | conservative: no cost-minimizing collapse, but no gain yet |
+
+Conclusions:
+
+- BC reproduces the incumbent almost exactly on D1, passing the Week 10
+  sanity check from the plan.
+- CQL stays near the incumbent instead of finding the unsafe cheap
+  policy (contrast with online DQN: 0.19 cost, 3296 violations) — the
+  intended conservative behavior. Gains over the incumbent need tuning:
+  alpha, n_critics, encoder size, more steps, and the constraint critics.
+
+Next:
+
+- Discrete IQL is not in d3rlpy 2.8 — implement it by hand (expectile
+  regression + advantage-weighted extraction).
+- Constraint critics for SLA violations and switches + Lagrangian
+  policy selection.
+- Off-policy evaluation (fitted-Q + WIS + bootstrap) and the acceptance
+  test.
