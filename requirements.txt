@@ -1,0 +1,27 @@
+# Core scientific stack
+numpy
+pandas
+pyarrow
+scipy
+matplotlib
+seaborn
+
+# Machine learning / RL
+gymnasium
+stable-baselines3
+sb3-contrib
+d3rlpy
+
+# Experiment configuration and tracking
+hydra-core
+
+# Explainability
+scikit-learn
+shap
+
+# Code quality
+pre-commit
+ruff
+
+# PyTorch is installed separately from the CPU wheel index
+# (see README setup notes) to avoid pulling the CUDA build.

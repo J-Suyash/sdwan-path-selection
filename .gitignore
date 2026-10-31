@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# Data (traces and datasets can be large; keep raw downloads out of git)
+data/raw/
+data/interim/
+data/processed/
+*.parquet
+*.h5
+*.hdf5
+
+# Experiment outputs
+outputs/
+wandb/
+mlruns/
+logs/
+d3rlpy_data/
+d3rlpy_logs/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Build artifacts
+build/
+dist/
