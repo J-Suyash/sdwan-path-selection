@@ -10,7 +10,8 @@
 
 - [x] Python 3.11.15 environment with PyTorch 2.15.0+cpu, Gymnasium,
       d3rlpy 2.8, Stable-Baselines3, sb3-contrib
-- [ ] Mininet `pingall` works (needs root; passwordless sudo not set up)
+- [x] Mininet `pingall` works (`sudo mn --switch ovs --test pingall`,
+      0% dropped, verified 2026-10-31)
 - [x] d3rlpy CQL example runs on CartPole (scripts/check_cql_cartpole.py,
       final mean return ~321)
 - [x] os-ken installed in the environment (testbed controller)
