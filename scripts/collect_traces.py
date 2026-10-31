@@ -57,8 +57,9 @@ def iperf_loop(writer: Writer, args: argparse.Namespace, iperf: str) -> None:
     time.sleep(min(args.iperf_interval, 300))
     while True:
         try:
+            iperf_target = args.iperf_target or args.target
             proc = subprocess.run(
-                [iperf, "-c", args.target, "-t", str(args.iperf_duration), "-J"],
+                [iperf, "-c", iperf_target, "-t", str(args.iperf_duration), "-J"],
                 capture_output=True,
                 text=True,
                 timeout=args.iperf_duration + 30,
@@ -82,6 +83,11 @@ def main() -> None:
     ap.add_argument("--ping-interval", type=float, default=0.2)
     ap.add_argument("--iperf-interval", type=int, default=600)
     ap.add_argument("--iperf-duration", type=int, default=10)
+    ap.add_argument(
+        "--iperf-target",
+        default=None,
+        help="iperf3 server address; defaults to --target",
+    )
     args = ap.parse_args()
 
     ping = shutil.which("ping")

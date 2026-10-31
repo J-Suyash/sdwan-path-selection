@@ -22,3 +22,13 @@ Sources (Section 11 of the proposal):
   per-second 5G downlink throughput (iPerf) with signal-strength context
   (RSRP/RSRQ/SINR), mobility mode and anonymized tower id.
 - RIPE Atlas REST API needs an account key; M-Lab NDT needs no key.
+
+## Live collection
+
+Two collectors run continuously (scripts/collect_traces.py):
+
+- `vps2vps` — on alc, pinging bigguy every 200 ms
+  (~/sdwan-collect/traces_vps2vps.csv on alc).
+- `home_broadband` — on the team laptop, pinging alc's public IP every
+  200 ms and iperf3 to bigguy every 10 min
+  (data/raw/collected/home_broadband.csv).
