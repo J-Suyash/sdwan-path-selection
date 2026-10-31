@@ -41,7 +41,9 @@ scripts/check_cql_cartpole.py).
   (Oracle Cloud; internet only reaches port 22 — ICMP and 5201 are
   filtered by the VCN). Tailscale 100.113.191.84. SSH: key
   `~/.ssh/bigguy`, `ubuntu@144.24.130.58`. iperf3 server runs as a
-  systemd service on port 5201, reachable over Tailscale.
+  systemd service on port 5201, reachable over Tailscale. Tailscale
+  SSH is disabled (`tailscale set --ssh=false`), so `ubuntu@bigguy`
+  and the public IP both reach normal sshd.
 - Home laptop collector (this machine): pings alc's public IP every
   200 ms, iperf3 every 10 min to bigguy over the direct Tailscale
   path. CSV: data/raw/collected/home_broadband.csv. Stop with
