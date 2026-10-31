@@ -34,3 +34,10 @@ Two collectors run continuously (scripts/collect_traces.py):
 - `home_broadband` — on the team laptop, pinging alc's public IP every
   200 ms and iperf3 to bigguy every 10 min
   (data/raw/collected/home_broadband.csv).
+
+## Processed (Section 11.2)
+
+Run `python scripts/preprocess_traces.py all` to rebuild. Output in
+`data/processed/<source>.parquet` with a uniform 1-second schema:
+utc, source, site, rtt_ms, jitter_ms, loss_frac, dl_mbps, ul_mbps,
+outage, meta.
