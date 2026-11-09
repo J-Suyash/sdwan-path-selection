@@ -45,13 +45,17 @@ def link_ok(env: SDWanEnv, cls: str, underlay: str, scale: float = 1.0) -> bool:
     if not hist:
         return True
     mean_rtt = float(np.mean([h[0] for h in hist]))
-    mean_jitter = float(np.mean([h[1] for h in hist]))
+    # History RTT is round-trip; SLA delay thresholds are one-way.
+    # Keep the incumbent's link test consistent with the emulator's
+    # per-class QoS check.
+    mean_delay = mean_rtt * env.cfg.oneway_delay_factor
+    mean_jitter = float(np.mean([h[1] for h in hist])) * env.cfg.oneway_delay_factor
     mean_loss = float(np.mean([h[2] for h in hist]))
     up = bool(np.mean([h[4] for h in hist]) > 0.5)
     thr_d, thr_j, thr_l = env.cfg.sla[cls]
     return (
         up
-        and mean_rtt <= thr_d * scale
+        and mean_delay <= thr_d * scale
         and mean_jitter <= max(thr_j * scale, 1.0)
         and mean_loss <= min(thr_l * scale, 1.0)
     )

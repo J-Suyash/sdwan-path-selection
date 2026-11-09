@@ -63,3 +63,38 @@ Next:
   policy selection.
 - Off-policy evaluation (fitted-Q + WIS + bootstrap) and the acceptance
   test.
+
+## 2026-11-10 — RTT / one-way-delay semantics fixed (owner decision 5)
+
+Verified semantics, not assumed:
+
+- SLA delay thresholds are one-way (ITU-T G.114, proposal Section 7).
+- Every trace delay input is a round-trip ping: WetLinks `ping_avg`,
+  Raca5G `PINGAVG`, LENS ping/iperf `rtt`, collected ping logs, RIPE
+  Atlas ping. Lumos5G carries no RTT (NaN). LENS also ships IRTT
+  one-way metrics — pin per field before any LENS adoption.
+- Fix: `oneway_delay_factor = 0.5` in `env/config.py`, applied in
+  `SDWanEnv._class_qos` (delay + trace jitter) and incumbent
+  `link_ok`. Regression tests added; 21 pass.
+
+Reassessment (medium profile, 3 seeds, `scripts/reassess_delay_semantics.py`):
+
+| policy | cost/h | voice viol/h | video viol/h | int viol/h | switches/min |
+|---|---|---|---|---|---|
+| threshold_hysteresis | 0.4–3.2 (seed-spread) | 80/952/1 | = |
+| best_quality | 3.4–7.0 | 84/977/0 | = |
+| lowest_cost_within_sla | 0.2–1.8 | 48–2673 | ~1 sw/min |
+| random | 1.8–3.4 | 1104–2118 | 160 sw/min |
+
+Findings:
+
+- Safety classification changed categorically: broadband under the old
+  mapping never met the 150 ms one-way voice delay; now it does
+  (e.g. 188 ms RTT → 94 ms). Assignments parked on broadband are no
+  longer delay-unsafe, so the old "0.19 cost, 3296 voice violations"
+  DQN classification must be re-derived before reuse.
+- Relative incumbent ranking is unchanged; absolute violation counts
+  are now dominated by outage windows and loss/jitter, and per-seed
+  variance is huge (1 to 952 voice violations/h on medium). Report
+  seeds separately, never a 3-seed mean alone.
+- Rows prefixed `rttfix_` appended to analysis/baseline_results.csv.

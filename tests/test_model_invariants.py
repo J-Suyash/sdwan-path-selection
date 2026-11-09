@@ -127,6 +127,32 @@ def test_episode_duration_must_align_with_decision_interval():
         SDWanConfig(episode_seconds=5, decision_interval_s=2.0)
 
 
+def test_oneway_delay_maps_round_trip_rtt_against_one_way_sla():
+    """Regression for the RTT / one-way delay semantics fix.
+
+    All trace delay inputs are round-trip ping measurements; the SLA delay
+    thresholds are one-way (ITU-T G.114). A round-trip of 188 ms must map
+    to 94 ms one-way, not breach the 150 ms voice delay threshold by
+    itself.
+    """
+    cfg = SDWanConfig(episode_seconds=4, primary_profile="small")
+    cfg.fallback_rtt_ms = {"bb": 188.0, "five_g": 40.0, "leo": 60.0}
+    env = SDWanEnv(cfg, seed=1)
+    env.reset(seed=1)
+    for step in range(cfg.episode_steps):
+        _, _, _, _, info = env.step(0)
+    # Load, loss or outage could still violate independently; assert the
+    # delay component explicitly instead of only the violation flag.
+    delay = info["per_class"]["voice"]["delay"]
+    assert delay < cfg.sla["voice"][0]
+    assert env.cfg.oneway_delay_factor == 0.5
+
+
+def test_oneway_delay_factor_is_validated():
+    with pytest.raises(ValueError, match="oneway_delay_factor"):
+        SDWanConfig(oneway_delay_factor=0.0)
+
+
 def test_switching_interruption_uses_simulation_seconds(tmp_path):
     calibration = tmp_path / "switching.csv"
     pd.DataFrame(

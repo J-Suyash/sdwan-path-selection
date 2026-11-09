@@ -78,6 +78,16 @@ class SDWanConfig:
     # See data/switching_calibration_template.csv and docs/workload_model_spec.md.
     switching_calibration_path: str | None = None
 
+    # Delay semantics. Every trace delay input (WetLinks ``ping_avg``,
+    # Raca5G ``PINGAVG``, LENS ``rtt``, collected/RIPE ping) is a
+    # round-trip ping measurement, verified per source in
+    # docs/parameter_registry.csv. The SLA delay thresholds are one-way
+    # (ITU-T G.114; proposal Section 7). One-way delay is therefore
+    # round-trip / 2 under a symmetric-path assumption; queueing delay is
+    # already one-way. Asymmetry and downlink-only RTT split are
+    # recorded as limitations pending Mininet calibration.
+    oneway_delay_factor: float = 0.5
+
     # Trace handling
     data_root: str = "data/processed"
     underlay_source: dict[str, str] = field(
@@ -106,6 +116,8 @@ class SDWanConfig:
             )
         if self.queue_buffer_s < 0:
             raise ValueError("queue_buffer_s must be non-negative")
+        if not 0 < self.oneway_delay_factor <= 1:
+            raise ValueError("oneway_delay_factor must be in (0, 1]")
         if self.workload_regime not in {None, "low", "normal", "peak", "stress"}:
             raise ValueError(
                 "workload_regime must be low, normal, peak, stress, or None"

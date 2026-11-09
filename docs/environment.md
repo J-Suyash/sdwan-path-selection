@@ -36,6 +36,38 @@ d3rlpy's bundled `get_cartpole()` environment is legacy gym 0.26 and
 breaks under NumPy 2; evaluate with a Gymnasium env instead (see
 scripts/check_cql_cartpole.py).
 
+## Delay semantics (fixed 2026-11-10)
+
+Every trace delay input is a **round-trip** ping measurement: WetLinks
+`ping_avg` (ICMP echo), Raca5G `PINGAVG` (Android ping), LENS ping/iperf
+`rtt` (the repo also distributes IRTT one-way metrics; any future LENS
+field must be pinned per field before use), the collected `vps2vps`,
+`home_broadband` and 5G-hotspot ping logs, and RIPE Atlas ping results.
+Lumos5G has no RTT field at all (NaN in the unified schema). The SLA
+delay thresholds (voice 150 ms, video 150 ms, interactive 200 ms),
+following ITU-T G.114 and the proposal, are **one-way**. The emulator
+therefore maps one-way delay = round-trip / 2
+(`SDWanConfig.oneway_delay_factor = 0.5`), under a symmetric-path
+assumption, and applies the same mapping to the trace-jitter component
+and to the incumbent `link_ok` test; queueing delay is already one-way.
+
+Consequences to treat as empirical, not cosmetic:
+
+- A broadband leg whose RTT historically exceeded 150 ms used to breach
+  the voice delay SLA every second; it is now delay-compliant when its
+  one-way equivalent is under threshold, so **safety classifications of
+  assignments can flip**, not just violation magnitudes.
+- `scripts/reassess_delay_semantics.py` records post-fix incumbent
+  rankings in `analysis/baseline_results.csv` (rows prefixed
+  `rttfix_`). Relative ranking of incumbents is unchanged
+  (threshold-hysteresis safest, best-quality most expensive,
+  lowest-cost cheapest with violations, random worst), but absolute
+  violation counts are driven now by outage windows and loss/jitter,
+  and per-seed variance is large (1 to 952 voice violations/h across
+  3 seeds on `medium`).
+- Path asymmetry is unmeasured; if Mininet cross-engine calibration
+  shows systematic asymmetry, revisit the factor per underlay.
+
 ## Infrastructure (VPS)
 
 - `alc` — Ubuntu 24.04, 2 cores / 7.8 GiB, public IP 94.103.167.15

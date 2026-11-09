@@ -185,6 +185,9 @@ class SDWanEnv(gymnasium.Env):
         underlay = self.assignment[cls]
         series = self.series[underlay]
         rtt = float(series["rtt_ms"][idx])
+        # Trace RTTs are round-trip measurements; SLA thresholds are
+        # one-way. See SDWanConfig.oneway_delay_factor.
+        delay_rtt = rtt * self.cfg.oneway_delay_factor
         trace_loss = float(np.clip(series["loss"][idx], 0.0, 1.0))
         capacity = float(series["capacity"][idx])
         up = bool(series["up"][idx]) and capacity > 0.0
@@ -224,9 +227,13 @@ class SDWanEnv(gymnasium.Env):
         disrupted = now_s < self.disrupt_until[cls]
         effect = self.switch_effects[cls]
         loss = 1.0 - (1.0 - loss) * (1.0 - effect.loss_frac) if disrupted else loss
-        delay = rtt + queue_delay if up else float("inf")
-        jitter = abs(
-            float(series["rtt_ms"][idx]) - float(series["rtt_ms"][max(idx - 1, 0)])
+        delay = delay_rtt + queue_delay if up else float("inf")
+        jitter = (
+            abs(
+                float(series["rtt_ms"][idx])
+                - float(series["rtt_ms"][max(idx - 1, 0)])
+            )
+            * self.cfg.oneway_delay_factor
         )
         jitter += queue_delay * 0.2
         if disrupted:
