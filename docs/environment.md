@@ -22,6 +22,11 @@
 System Python is 3.14; do not use it directly for the RL stack. Always
 activate the uv-managed 3.11 environment.
 
+Mininet and its Open vSwitch bindings are installed only for system Python.
+Use `.venv/bin/python` for emulator, analysis and dry-run tooling, and
+`sudo env PYTHONPATH="$PWD" /usr/bin/python3 -m ...` for the Mininet
+testbed. The project virtual environment cannot import Mininet.
+
 OmniSafe currently forces `pandas==2.0.3` and `pillow==11.3.0`
 downgrades (its pins predate NumPy 2 / pandas 3). Decision: install it
 in Phase 2 only when the Lagrangian-PPO baseline is needed, or use the
