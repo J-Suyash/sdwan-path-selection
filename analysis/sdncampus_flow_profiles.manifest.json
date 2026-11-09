@@ -1,0 +1,51 @@
+{
+  "applications": {
+    "dropbox": {
+      "app": "dropbox",
+      "class_name": "bulk",
+      "file_id": "b6142864-58b9-4295-8e1e-8cfd7c6596e3",
+      "file_name": "dropbox.csv",
+      "sha256": "749051697f5fbd1bc1b2b62211072190c1be94c9a72b4ad27c23a66d7c44eb00",
+      "size_bytes": 49797553
+    },
+    "gmail": {
+      "app": "gmail",
+      "class_name": "interactive",
+      "file_id": "93244208-cef2-485a-91d0-893e3776b8a1",
+      "file_name": "gmail.csv",
+      "sha256": "517b67df6b246d9edf03b9fd3c601c88b74f5ccb6783cd677054fb166d0b0819",
+      "size_bytes": 43077450
+    },
+    "googlemeet": {
+      "app": "googlemeet",
+      "class_name": "video",
+      "file_id": "3cfd7a74-c117-4cb7-b0e1-1be72d8ef0c5",
+      "file_name": "googlemeet.csv",
+      "sha256": "0427b5ba814d966022719440a2cfcd54137ab70b826b7903f49cce79adbe5093",
+      "size_bytes": 61785103
+    },
+    "voip": {
+      "app": "voip",
+      "class_name": "voice",
+      "file_id": "3440bac6-c0cc-4345-a31d-0cd2fe81ede4",
+      "file_name": "voip.csv",
+      "sha256": "04e40b29b084cb8cf3d519c887d54f8b4cafc9368d4d07aeba9ee30fe9521d96",
+      "size_bytes": 50828271
+    }
+  },
+  "bootstrap_replicates": 500,
+  "bootstrap_sample_limit": 20000,
+  "cache_dir": "data/raw/sdncampus-v1",
+  "dataset": "SDNCampus",
+  "dataset_url": "https://data.mendeley.com/datasets/wvp9tksn72/1",
+  "limitations": [
+    "Controlled application runs, not natural mixed concurrency.",
+    "Flow records are not user or application sessions.",
+    "No absolute timestamps are present in the final CSV."
+  ],
+  "output": "analysis/sdncampus_flow_profiles.csv",
+  "paper_doi": "10.56279/jicts.v4i1.422",
+  "release_doi": "10.17632/wvp9tksn72.1",
+  "retrieved": "2026-11-06",
+  "seed": 20261106
+}

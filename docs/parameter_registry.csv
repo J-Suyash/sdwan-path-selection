@@ -1,0 +1,23 @@
+parameter,unit,application_or_scope,source_or_method,extraction_or_measurement,status,uncertainty,model_use
+total_users,count,branch,experimental BranchProfile assumption,config value only,assumed,scenario sensitivity,active population
+devices_per_user,count,branch,experimental BranchProfile assumption,config value only,assumed,scenario sensitivity,user/device hierarchy
+operating_hours,hours,branch,experimental BranchProfile assumption,config value only,assumed,profile sensitivity,time-of-day regime
+application_mix,fraction,all classes,experimental BranchProfile assumption,normalised config weights,assumed,profile sensitivity,session arrivals
+session_rate_per_active_user_min,sessions/min,per class,experimental BranchProfile assumption,Poisson rate config,assumed,estimate after extraction,session arrivals
+session_duration_s,seconds,per class,experimental BranchProfile assumption,uniform bounds config,assumed,estimate after extraction,session lifecycle
+voice_media_rate,megabits/s,voice,controlled generator calibration,packet capture measurement,unavailable,report CI,voice flow rate
+video_media_rate,megabits/s,video,controlled generator or capture,rate/burst extraction,unavailable,report CI,video flow rate
+sdncampus_voip_flow_median_rate,megabits/s,voice,"SDNCampus v1 voip.csv; DOI 10.17632/wvp9tksn72.1","median total-byte rate over 100,000 CICFlowMeter flow records; duration microseconds confirmed from CICFlowMeter",provisional,"0.1498-0.1499 Mbps 95% bootstrap median interval; p95 0.4947 Mbps","cross-check only; isolated application-flow rate, not call or session bitrate"
+sdncampus_googlemeet_flow_median_rate,megabits/s,video,"SDNCampus v1 googlemeet.csv; DOI 10.17632/wvp9tksn72.1","median total-byte rate over 100,000 CICFlowMeter flow records",provisional,"1.9139-1.9663 Mbps 95% bootstrap median interval; p95 4.3102 Mbps","cross-check video flow rate; isolated conferencing run, not enterprise demand"
+sdncampus_flow_duration_median,seconds,all four representative applications,"SDNCampus v1 voip/googlemeet/gmail/dropbox CSV files","100,000 flow records per application; flow duration in source microseconds converted to seconds",provisional,"voip 0.1158-0.1163 s; googlemeet 0.1175-0.1176 s; gmail 0.0189-0.0190 s; dropbox 0.0744-0.0749 s; 95% bootstrap median intervals","flow timeout diagnostics only; do not set session duration from flow duration"
+interactive_transaction_rate,transactions/s,interactive,held-out application traces,request/response extraction,unavailable,report CI,interactive flow bursts
+bulk_transfer_size,megabytes,bulk,held-out transfer traces,finite-transfer extraction,unavailable,report CI,bulk flow completion
+underlay_rtt,milliseconds,underlay,processed measured trace,per-second source field,verified per source,trace CI,base delay
+underlay_capacity,megabits/s,underlay,processed measured trace,per-second source field,verified per source,trace CI,queue service
+underlay_loss,fraction,underlay,processed measured trace,per-second source field,verified per source,trace CI,base loss
+queue_buffer_s,seconds,emulator,fluid model assumption,nominal-capacity scaling,assumed,calibrate against testbed,buffer bound
+decision_interval_s,seconds,emulator,experiment configuration,configured step,provisional,compare telemetry resolution,event aggregation
+switch_interruption_s,seconds,switching,Mininet controlled measurement,flow-rule/state combinations,unavailable,repeatability CI,transient model
+switch_loss_fraction,fraction,switching,Mininet controlled measurement,packet counters,unavailable,repeatability CI,transient model
+switch_reordering_fraction,fraction,switching,Mininet controlled measurement,sequence analysis,unavailable,repeatability CI,transient model
+validation_thresholds,metric-specific,validation,derived after holdout/repeatability,bootstrap and natural variation,unavailable,interval required,acceptance gate
