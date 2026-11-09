@@ -1,0 +1,47 @@
+{
+  "name": "smoke_voice_bb_to_five_g",
+  "server_ip": "10.0.0.100",
+  "paths": {
+    "bb": {
+      "capacity_mbps": 50.0,
+      "one_way_delay_ms": 20.0,
+      "jitter_ms": 1.0,
+      "loss_pct": 0.0
+    },
+    "five_g": {
+      "capacity_mbps": 30.0,
+      "one_way_delay_ms": 30.0,
+      "jitter_ms": 3.0,
+      "loss_pct": 0.2
+    },
+    "leo": {
+      "capacity_mbps": 20.0,
+      "one_way_delay_ms": 60.0,
+      "jitter_ms": 8.0,
+      "loss_pct": 0.8
+    }
+  },
+  "workloads": {
+    "voice": {
+      "flow_type": "voice",
+      "transport": "udp",
+      "client_ip": "10.0.0.11",
+      "server_port": 5004,
+      "rate_mbps": 0.15,
+      "duration_s": 10.0,
+      "warmup_s": 4.0,
+      "packet_bytes": 240
+    }
+  },
+  "events": [
+    {
+      "workload": "voice",
+      "old_path": "bb",
+      "new_path": "five_g"
+    }
+  ],
+  "repetitions": 1,
+  "queue_limit_packets": 1000,
+  "branch_profile": "medium",
+  "workload_regime": "normal"
+}
