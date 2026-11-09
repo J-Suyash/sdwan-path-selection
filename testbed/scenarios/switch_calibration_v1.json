@@ -91,6 +91,11 @@
   ],
   "repetitions": 5,
   "queue_limit_packets": 1000,
+  "per_path_queue_limit_packets": {
+    "bb": 4166,
+    "five_g": 3125,
+    "leo": 2083
+  },
   "branch_profile": "medium",
   "workload_regime": "normal"
 }

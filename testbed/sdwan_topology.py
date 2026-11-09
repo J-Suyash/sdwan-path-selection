@@ -135,7 +135,7 @@ def build_network(scenario: Scenario) -> TestbedNetwork:
             jitter=f"{path.jitter_ms}ms",
             loss=path.loss_pct,
             use_tbf=True,
-            max_queue_size=scenario.queue_limit_packets,
+            max_queue_size=scenario.queue_limit_for(path.name),
         )
         path_ports[path.name] = branch.ports[link.intf1]
 

@@ -40,3 +40,34 @@ def test_scenario_rejects_unknown_path(tmp_path):
 
     with pytest.raises(ValueError, match="unknown path"):
         load_scenario(path)
+
+
+def test_per_path_queue_limit_overrides_shared_limit(tmp_path):
+    raw = {
+        "name": "matched",
+        "server_ip": "10.0.0.100",
+        "paths": {
+            "bb": {"capacity_mbps": 200, "one_way_delay_ms": 93.7,
+                   "jitter_ms": 0.3, "loss_pct": 0},
+            "leo": {"capacity_mbps": 100, "one_way_delay_ms": 31.0,
+                    "jitter_ms": 0.3, "loss_pct": 0},
+        },
+        "workloads": {
+            "voice": {"flow_type": "voice", "transport": "udp",
+                      "client_ip": "10.0.0.11", "server_port": 5004,
+                      "rate_mbps": 0.15, "duration_s": 10, "warmup_s": 4,
+                      "packet_bytes": 240},
+        },
+        "events": [{"workload": "voice", "old_path": "bb", "new_path": "leo"}],
+        "queue_limit_packets": 1000,
+        # Emulator queue_buffer_s=0.25 scaled per capacity: bytes/1500.
+        "per_path_queue_limit_packets": {"bb": 4166, "leo": 2083},
+        "branch_profile": "medium",
+        "workload_regime": "normal",
+    }
+    path = tmp_path / "matched.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    scenario = load_scenario(path)
+    assert scenario.queue_limit_for("bb") == 4166
+    assert scenario.queue_limit_for("leo") == 2083
+    assert scenario.queue_limit_for("missing") == 1000  # shared fallback

@@ -49,8 +49,21 @@ class Scenario:
     events: tuple[SwitchEvent, ...]
     repetitions: int = 1
     queue_limit_packets: int = 1000
+    per_path_queue_limit_packets: dict[str, int] | None = None
     branch_profile: str = "medium"
     workload_regime: str = "normal"
+
+    def queue_limit_for(self, path: str) -> int:
+        """Per-path queue limit for engine matching, else the scenario one.
+
+        Matched comparisons with the emulator want buffer bytes =
+        capacity * queue_buffer_s per path; the shared single limit is
+        kept as the default for simple smoke scenarios.
+        """
+
+        if self.per_path_queue_limit_packets and path in self.per_path_queue_limit_packets:
+            return int(self.per_path_queue_limit_packets[path])
+        return self.queue_limit_packets
 
 
 def load_scenario(path: str | Path) -> Scenario:
@@ -68,6 +81,7 @@ def load_scenario(path: str | Path) -> Scenario:
         events=events,
         repetitions=int(raw.get("repetitions", 1)),
         queue_limit_packets=int(raw.get("queue_limit_packets", 1000)),
+        per_path_queue_limit_packets=raw.get("per_path_queue_limit_packets"),
         branch_profile=raw.get("branch_profile", "medium"),
         workload_regime=raw.get("workload_regime", "normal"),
     )
