@@ -74,7 +74,9 @@ its source field or controlled measurement is recorded in
    UDP and TCP, multiple path combinations (broadband, 5G, LEO legs) and
    repeated measurements, filling `data/switching_calibration_template.csv`.
 7. **Held-out session-level and transfer-level distribution summaries**
-   proceed in parallel with the Mininet work.
+   proceed in parallel with the Mininet work. (Transfer level completed
+   2026-11-10; session level verified unavailable in the SDNCampus
+   release — identity columns are stripped.)
 8. **Matched emulator/Mininet scenarios** and derived validation
    thresholds follow from measured uncertainty and repeatability.
 9. **Gate tightened:** no regenerated final RL datasets and no CQL/IQL
@@ -103,7 +105,7 @@ its source field or controlled measurement is recorded in
 | P0 | Complete | Repository/file audit for the six candidate datasets | Network access | `docs/dataset_audit.md` records a role decision backed by remote file evidence or an explicit access blocker. SEARCHLIGHT remains reference-only pending access. |
 | P0 | Complete | Review branch profiles and parameter registry | Owner selects primary evaluation profile | Owner selected `medium` (2026-11-10); `small`/`large` reserved for generalisation. |
 | P0 | Complete | Validate hierarchy and queue invariants | Current generator and emulator | Deterministic replay, queue bound/conservation tests and explicit session/flow lifecycle tests pass. |
-| P1 | In progress | Extract distributions from accepted datasets | P0 audit | Controlled flow-level extraction exists for four applications. Held-out session- or transfer-level summaries with uncertainty are still required where the source supports them. |
+| P1 | Complete | Extract distributions from accepted datasets | P0 audit | Flow profiles (four applications) plus held-out transfer-level continuations with bootstrap intervals and reprovenanced FIN/censoring classification (`analysis/transfer_summaries.md`, 2026-11-10). Session level is unavailable from this source: the release strips user/device/session identity; generator keeps explicit assumptions. Remaining: LENS-field pinning only if LENS is adopted. |
 | P1 | In progress | Build Mininet matched scenarios and switching measurements | P0 profile, underlay traces, method choice | PCAP/counter logs include interruption, loss, reordering and retransmission measurements. Runner implementation and dry-run are complete; privileged smoke execution is pending. |
 | P1 | Blocked | Cross-engine validation | P1 workload extraction and testbed | Repeat runs report error distributions and intervals; thresholds are derived, not assumed. |
 | P2 | Blocked | Regenerate baseline transition datasets | P1 validation | Metadata includes profile, seed, trace segment, policy/simulator version, constraints and behavior probability. |

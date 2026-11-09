@@ -1,0 +1,37 @@
+{
+  "generated_utc": "2026-11-09T19:46:10.061131+00:00",
+  "dataset_doi": "10.17632/wvp9tksn72.1",
+  "paper_doi": "10.56279/jicts.v4i1.422",
+  "seed": 20261110,
+  "bootstrap_replicates": 500,
+  "split": "md5 parity over salted record content plus row index; estimation half produces intervals, held-out half reported for replication; source has no flow identity column",
+  "unit_of_analysis": "flow continuation burst; not a session",
+  "source_files": {
+    "dropbox": {
+      "sha256": "749051697f5fbd1bc1b2b62211072190c1be94c9a72b4ad27c23a66d7c44eb00"
+    },
+    "gmail": {
+      "sha256": "517b67df6b246d9edf03b9fd3c601c88b74f5ccb6783cd677054fb166d0b0819"
+    },
+    "googlemeet": {
+      "sha256": "0427b5ba814d966022719440a2cfcd54137ab70b826b7903f49cce79adbe5093"
+    },
+    "voip": {
+      "sha256": "04e40b29b084cb8cf3d519c887d54f8b4cafc9368d4d07aeba9ee30fe9521d96"
+    }
+  },
+  "local_cache_sha256": {
+    "dropbox.csv": "749051697f5fbd1bc1b2b62211072190c1be94c9a72b4ad27c23a66d7c44eb00",
+    "gmail.csv": "517b67df6b246d9edf03b9fd3c601c88b74f5ccb6783cd677054fb166d0b0819",
+    "googlemeet.csv": "0427b5ba814d966022719440a2cfcd54137ab70b826b7903f49cce79adbe5093",
+    "voip.csv": "04e40b29b084cb8cf3d519c887d54f8b4cafc9368d4d07aeba9ee30fe9521d96"
+  },
+  "limitations": [
+    "each application ran in isolation; no mixed concurrency",
+    "no device/user identity; session arrivals remain unavailable",
+    "censored records are truncated transfers by construction",
+    "per-application scopes recorded in connection_end classes"
+  ],
+  "output": "analysis/sdncampus_transfer_summaries.csv",
+  "rows": 16
+}
