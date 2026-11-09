@@ -20,7 +20,7 @@ underlay_capacity,megabits/s,underlay,processed measured trace,per-second source
 underlay_loss,fraction,underlay,processed measured trace,per-second source field,verified per source,trace CI,base loss
 queue_buffer_s,seconds,emulator,fluid model assumption,nominal-capacity scaling,assumed,calibrate against testbed,buffer bound
 decision_interval_s,seconds,emulator,experiment configuration,configured step,provisional,compare telemetry resolution,event aggregation
-switch_interruption_s,seconds,switching,Mininet controlled measurement,flow-rule/state combinations,unavailable,repeatability CI,transient model
-switch_loss_fraction,fraction,switching,Mininet controlled measurement,packet counters,unavailable,repeatability CI,transient model
-switch_reordering_fraction,fraction,switching,Mininet controlled measurement,sequence analysis,unavailable,repeatability CI,transient model
+switch_interruption_s,seconds,switching,Mininet controlled measurement,flow-rule/state combinations,in progress: 120-run udp+tcp calibration sweep running, per-key repeatability CI,transient model
+switch_loss_fraction,fraction,switching,Mininet controlled measurement,packet counters,in progress: 120-run udp+tcp calibration sweep running, per-key repeatability CI,transient model
+switch_reordering_fraction,fraction,switching,Mininet controlled measurement,sequence analysis,in progress: 120-run udp+tcp calibration sweep running, per-key repeatability CI,transient model
 validation_thresholds,metric-specific,validation,derived after holdout/repeatability,bootstrap and natural variation,unavailable,interval required,acceptance gate
