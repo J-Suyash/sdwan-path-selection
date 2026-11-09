@@ -1,5 +1,9 @@
 # Lab notebook (running results log)
 
+The entries below are legacy results from the pre-audit emulator and are not
+approved validation thresholds or current workload evidence. Regenerate
+results after the gates in `docs/issue_register.md` pass.
+
 Plan Section 14.2: date, config, seeds, numbers, one-line conclusion.
 
 ## 2026-10-31 — baseline comparison, first pass
