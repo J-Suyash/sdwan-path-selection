@@ -6,17 +6,22 @@ env:
   underlays: [bb, five_g, leo]
   classes: [voice, video, interactive, bulk]
   decision_interval_s: 1
-  window_s: 10
-  episode_minutes: 60
+  history_s: 10
+  episode_seconds: 3600
+  primary_profile: medium       # small | medium | large; experimental profile
+  workload_regime: null         # low | normal | peak | stress | null (time of day)
+  queue_buffer_s: 0.25          # assumption; calibrate against Mininet
+  transport_approximation: fluid-rate-v1
+  switching_calibration_path: null  # set after measured calibration is populated
 
-# SLA budgets (Section 8.2)
+# SLA budgets are experiment configuration, not universal requirements.
 budgets:
   epsilon_voice: 0.01
   epsilon_video: 0.02
   epsilon_interactive: 0.03
   max_switches_per_min: 2
 
-# Link prices per GB (model parameters)
+# Link prices per GB are provisional model parameters.
 prices_gb:
   bb: 0.02
   five_g: 0.15

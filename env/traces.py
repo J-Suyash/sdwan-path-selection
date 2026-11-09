@@ -25,21 +25,22 @@ def _fill_nan(arr: np.ndarray, fallback: float) -> np.ndarray:
 
 def build_series(
     df: pd.DataFrame | None,
-    seconds: int,
+    steps: int,
     rng: np.random.Generator,
     fallback_rtt_ms: float,
     cap_mbps: float,
+    step_s: float = 1.0,
 ) -> dict[str, np.ndarray]:
     """Sample a contiguous episode window; tile if the source is short."""
     if df is None:
-        return synthetic_series(seconds, rng, fallback_rtt_ms, cap_mbps)
+        return synthetic_series(steps, rng, fallback_rtt_ms, cap_mbps)
     df = df.dropna(subset=["utc"]).sort_values("utc").reset_index(drop=True)
     if len(df) == 0:
-        return synthetic_series(seconds, rng, fallback_rtt_ms, cap_mbps)
+        return synthetic_series(steps, rng, fallback_rtt_ms, cap_mbps)
 
     t_min = df["utc"].min()
     t_max = df["utc"].max()
-    dur = pd.Timedelta(seconds=seconds)
+    dur = pd.Timedelta(seconds=steps * step_s)
     if t_max - t_min >= dur:
         max_offset = int((t_max - t_min - dur).total_seconds()) + 1
         start_t = t_min + pd.Timedelta(seconds=float(rng.integers(0, max_offset)))
@@ -47,10 +48,10 @@ def build_series(
         start_t = t_min
     window = df[(df["utc"] >= start_t) & (df["utc"] < start_t + dur)]
     if window.empty:
-        return synthetic_series(seconds, rng, fallback_rtt_ms, cap_mbps)
+        return synthetic_series(steps, rng, fallback_rtt_ms, cap_mbps)
 
-    sec = np.arange(seconds, dtype=np.int64)
-    grid = start_t.floor("s") + pd.to_timedelta(sec, unit="s")
+    offsets = np.arange(steps, dtype=float) * step_s
+    grid = start_t.floor("s") + pd.to_timedelta(offsets, unit="s")
 
     def reindex(col: str) -> pd.Series:
         idx = window["utc"].dt.floor("s")
@@ -73,14 +74,19 @@ def build_series(
 
 
 def synthetic_series(
-    seconds: int, rng: np.random.Generator, fallback_rtt_ms: float, cap_mbps: float
+    steps: int, rng: np.random.Generator, fallback_rtt_ms: float, cap_mbps: float
 ) -> dict[str, np.ndarray]:
     """Smooth random-walk series used when no trace file exists."""
     rtt = np.clip(
-        np.full(seconds, fallback_rtt_ms) + np.cumsum(rng.normal(0, 1.5, seconds)),
+        np.full(steps, fallback_rtt_ms) + np.cumsum(rng.normal(0, 1.5, steps)),
         5,
         500,
     )
-    loss = np.clip(rng.normal(0.002, 0.003, seconds), 0, 0.05)
-    capacity = np.full(seconds, cap_mbps * rng.uniform(0.6, 1.0))
-    return {"rtt_ms": rtt, "loss": loss, "capacity": capacity, "up": np.ones(seconds, dtype=bool)}
+    loss = np.clip(rng.normal(0.002, 0.003, steps), 0, 0.05)
+    capacity = np.full(steps, cap_mbps * rng.uniform(0.6, 1.0))
+    return {
+        "rtt_ms": rtt,
+        "loss": loss,
+        "capacity": capacity,
+        "up": np.ones(steps, dtype=bool),
+    }

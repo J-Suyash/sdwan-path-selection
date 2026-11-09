@@ -34,7 +34,7 @@ def evaluate(model, cfg, episodes=5, seed=0, deterministic=True):
     costs, viols, switches = [], [], []
     for ep in range(episodes):
         obs, _ = env.reset(seed=seed + ep)
-        for _ in range(cfg.episode_seconds):
+        for _ in range(cfg.episode_steps):
             action, _ = model.predict(obs, deterministic=deterministic)
             obs, _, terminated, _, info = env.step(int(action))
             if terminated:
@@ -49,7 +49,7 @@ def evaluate(model, cfg, episodes=5, seed=0, deterministic=True):
         "viol_video_per_h": float(np.mean([v["video"] for v in viols])),
         "viol_interactive_per_h": float(np.mean([v["interactive"] for v in viols])),
         "switches_per_min": float(
-            np.mean([sum(s.values()) / (cfg.episode_seconds / 60) for s in switches])
+            np.mean([sum(s.values()) / (cfg.episode_duration_s / 60) for s in switches])
         ),
     }
 
@@ -113,8 +113,12 @@ def main() -> None:
         model.learn(total_timesteps=args.steps)
         metrics = evaluate(model, cfg, episodes=args.eval_episodes, seed=seed * 100)
         metrics.update(
-            {"algo": args.algo, "seed": seed, "steps": args.steps,
-             "wall_s": round(time.perf_counter() - t0, 1)}
+            {
+                "algo": args.algo,
+                "seed": seed,
+                "steps": args.steps,
+                "wall_s": round(time.perf_counter() - t0, 1),
+            }
         )
         rows.append(metrics)
         print(metrics)
@@ -124,10 +128,19 @@ def main() -> None:
     if os.path.exists(args.out):
         df = pd.concat([pd.read_csv(args.out), df], ignore_index=True)
     df.to_csv(args.out, index=False)
-    print(df.groupby("algo")[
-        ["cost_per_h", "viol_voice_per_h", "viol_video_per_h",
-         "viol_interactive_per_h", "switches_per_min"]
-    ].mean().round(3))
+    print(
+        df.groupby("algo")[
+            [
+                "cost_per_h",
+                "viol_voice_per_h",
+                "viol_video_per_h",
+                "viol_interactive_per_h",
+                "switches_per_min",
+            ]
+        ]
+        .mean()
+        .round(3)
+    )
 
 
 if __name__ == "__main__":

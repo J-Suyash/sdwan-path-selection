@@ -23,13 +23,13 @@ def main() -> None:
     rng = np.random.default_rng(0)
     t0 = time.perf_counter()
     total_reward = 0.0
-    for _ in range(env.cfg.episode_seconds):
-        obs, reward, terminated, truncated, info = env.step(int(rng.integers(81)))
+    for _ in range(env.cfg.episode_steps):
+        obs, reward, _terminated, truncated, info = env.step(int(rng.integers(81)))
         total_reward += reward
         assert not truncated
     elapsed = time.perf_counter() - t0
 
-    speedup = env.cfg.episode_seconds / elapsed
+    speedup = env.cfg.episode_duration_s / elapsed
     print(f"1 h episode: {elapsed:.2f} s ({speedup:,.0f}x real time)")
     print(f"cumulative cost: ${info['cum_cost_usd']:.6f}")
     print(f"switches: {info['switches']}")

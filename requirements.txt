@@ -22,6 +22,7 @@ shap
 # Code quality
 pre-commit
 ruff
+pytest
 
 # PyTorch is installed separately from the CPU wheel index
 # (see README setup notes) to avoid pulling the CUDA build.
