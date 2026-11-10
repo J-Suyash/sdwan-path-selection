@@ -1,4 +1,4 @@
 metric,cells_used,replicates_per_cell_min,max_dev_from_median_median,max_dev_from_median_q90,max_dev_from_median_q95,band_rule
-interruption_s,24,4,0.0005193230008444516,0.0033294403743639104,0.008175410455260124,accept emulator/Mininet |difference| <= q90 of within-engine per-cell max deviation
-loss_frac,24,4,0.0,0.007190325658188012,0.012120885659391609,accept emulator/Mininet |difference| <= q90 of within-engine per-cell max deviation
-reordering_frac,24,4,0.0,0.0026076064544256474,0.0032014427257094,accept emulator/Mininet |difference| <= q90 of within-engine per-cell max deviation
+interruption_s,48,4,0.000508405753862462,0.008689236097052345,0.05533075299790652,accept emulator/Mininet |difference| <= q90 of within-engine per-cell max deviation
+loss_frac,48,4,0.0,0.009217640252185029,0.01317178841980314,accept emulator/Mininet |difference| <= q90 of within-engine per-cell max deviation
+reordering_frac,48,4,0.0,0.003374988757878863,0.00450383079959631,accept emulator/Mininet |difference| <= q90 of within-engine per-cell max deviation
