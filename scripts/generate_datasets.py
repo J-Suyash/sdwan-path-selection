@@ -153,12 +153,24 @@ def run_episode(
     }
 
 
+REQUIRED_ACCEPTANCE_FIELDS = (
+    "accepted",
+    "validation_run_id",
+    "code_revision",
+    "config_fingerprints",
+    "trace_set_sha256",
+    "reviewed_by",
+    "validation_cases",
+)
+
+
 def validation_is_accepted(acceptance_path: str) -> bool:
     """Cross-engine acceptance gate (owner decision 9 / spec section 6).
 
-    Final (non-preliminary) dataset export requires a recorded cross-engine
-    validation acceptance artefact produced after matched emulator/Mininet
-    runs pass their derived thresholds.
+    Final (non-preliminary) dataset export requires a reviewed acceptance
+    artefact bound to the exact code revision, environment configuration
+    fingerprints, trace-set hashes and validation run IDs it covers. A
+    file that merely says ``accepted: true`` is not sufficient.
     """
 
     path = Path(acceptance_path)
@@ -168,7 +180,16 @@ def validation_is_accepted(acceptance_path: str) -> bool:
         payload = json.loads(path.read_text())
     except json.JSONDecodeError:
         return False
-    return bool(payload.get("accepted")) and bool(payload.get("validation_run_id"))
+    if not isinstance(payload, dict):
+        return False
+    for field in REQUIRED_ACCEPTANCE_FIELDS:
+        value = payload.get(field)
+        if field == "accepted":
+            if value is not True:
+                return False
+        elif not value:  # non-empty run id, revision, reviewer, lists
+            return False
+    return True
 
 
 ACCEPTANCE_PATH = "data/cross_engine_validation_acceptance.json"

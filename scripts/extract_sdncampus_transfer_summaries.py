@@ -106,14 +106,17 @@ def summarize_transfer_group(
     *,
     bootstrap_replicates: int,
     rng: np.random.Generator,
+    teardown_max_bytes: int = TEARDOWN_MAX_BYTES,
 ) -> dict[str, float | int]:
     """Summarize one half of the split for one connection-end class.
 
     Payload-size statistics exclude teardown-only records (total bytes at
-    or below TEARDOWN_MAX_BYTES): measured FIN/RST teardown frames carry
-    no application payload in this release (31-byte medians). Their count
-    is retained separately so connection churn stays observable but does
-    not distort payload distributions.
+    or below ``teardown_max_bytes``): measured FIN/RST teardown frames
+    carry no application payload in this release (31-byte medians). Their
+    count is retained separately so connection churn stays observable but
+    does not distort payload distributions. The cutoff is a documented
+    modelling threshold; sensitivity at 32/64/128 B is recorded in
+    analysis/teardown_cutoff_sensitivity.csv.
     """
 
     bytes_total = (
@@ -123,8 +126,8 @@ def summarize_transfer_group(
     duration_s = pd.to_numeric(frame["Flow Duration"], errors="coerce") / 1e6
 
     selected = bytes_total[mask].to_numpy(dtype=float)
-    teardown_only = int((selected <= TEARDOWN_MAX_BYTES).sum())
-    payload_values = selected[selected > TEARDOWN_MAX_BYTES]
+    teardown_only = int((selected <= teardown_max_bytes).sum())
+    payload_values = selected[selected > teardown_max_bytes]
     positive = duration_s[mask].to_numpy(dtype=float) > 0
     if payload_values.size:
         low, high = bootstrap_median_ci(
@@ -155,6 +158,7 @@ def summarize_transfer_file(
     *,
     seed: int,
     bootstrap_replicates: int,
+    teardown_max_bytes: int = TEARDOWN_MAX_BYTES,
 ) -> list[dict[str, object]]:
     missing = TRANSFER_COLUMNS - set(frame.columns)
     if missing:
@@ -172,6 +176,7 @@ def summarize_transfer_file(
                 mask,
                 bootstrap_replicates=bootstrap_replicates,
                 rng=np.random.default_rng(seed),
+                teardown_max_bytes=teardown_max_bytes,
             )
             rows.append(
                 {
@@ -184,6 +189,7 @@ def summarize_transfer_file(
                     "source_sha256": asset.sha256,
                     "split_half": half_name,
                     "connection_end": end_name,
+                    "teardown_max_bytes": teardown_max_bytes,
                     **group,
                 }
             )
@@ -209,6 +215,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--bootstrap", type=int, default=500)
     parser.add_argument("--seed", type=int, default=20261110)
+    parser.add_argument(
+        "--teardown-max-bytes",
+        type=int,
+        default=TEARDOWN_MAX_BYTES,
+        help="FIN/RST records at or below this byte count are treated as "
+        "teardown-only control traffic and excluded from payload fits.",
+    )
     return parser.parse_args()
 
 
@@ -224,6 +237,7 @@ def main() -> None:
             asset,
             seed=args.seed,
             bootstrap_replicates=args.bootstrap,
+            teardown_max_bytes=args.teardown_max_bytes,
         )
         rows.extend(half_rows)
         for r in half_rows:
@@ -245,6 +259,7 @@ def main() -> None:
                 "paper_doi": PAPER_DOI,
                 "seed": args.seed,
                 "bootstrap_replicates": args.bootstrap,
+                "teardown_max_bytes": args.teardown_max_bytes,
                 "split": "md5 parity over salted record content plus row index; "
                 "estimation half produces intervals, held-out half reported "
                 "for replication; source has no flow identity column",

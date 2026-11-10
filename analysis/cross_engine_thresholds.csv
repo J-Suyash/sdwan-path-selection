@@ -1,0 +1,4 @@
+metric,cells_used,replicates_per_cell_min,max_dev_from_median_median,max_dev_from_median_q90,max_dev_from_median_q95,band_rule
+interruption_s,24,4,0.0005193230008444516,0.0033294403743639104,0.008175410455260124,accept emulator/Mininet |difference| <= q90 of within-engine per-cell max deviation
+loss_frac,24,4,0.0,0.007190325658188012,0.012120885659391609,accept emulator/Mininet |difference| <= q90 of within-engine per-cell max deviation
+reordering_frac,24,4,0.0,0.0026076064544256474,0.0032014427257094,accept emulator/Mininet |difference| <= q90 of within-engine per-cell max deviation

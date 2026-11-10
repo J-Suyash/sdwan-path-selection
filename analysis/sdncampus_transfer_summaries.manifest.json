@@ -1,9 +1,10 @@
 {
-  "generated_utc": "2026-11-10T09:34:54.577998+00:00",
+  "generated_utc": "2026-11-10T15:15:09.954341+00:00",
   "dataset_doi": "10.17632/wvp9tksn72.1",
   "paper_doi": "10.56279/jicts.v4i1.422",
   "seed": 20261110,
   "bootstrap_replicates": 500,
+  "teardown_max_bytes": 64,
   "split": "md5 parity over salted record content plus row index; estimation half produces intervals, held-out half reported for replication; source has no flow identity column",
   "unit_of_analysis": "flow continuation burst; not a session",
   "source_files": {

@@ -1,0 +1,79 @@
+{
+  "name": "cross_engine_cases_v1",
+  "description": "Matched emulator/Mininet validation cases. Every case fixes workload, trace, capacity, queue, scheduler, transport and switching conditions identically on both engines. Queue configuration comes from switch_calibration_v2 (per-path packet limits); emulator buffer_bytes must be mapped as limit_packets * packet_bytes in matched mode.",
+  "queue_config": {
+    "per_path_queue_limit_packets": { "bb": 4166, "five_g": 3125, "leo": 2083 },
+    "packet_bytes": 1400,
+    "scheduler": "fifo",
+    "emulator_buffer_mapping": "buffer_bytes = limit_packets * packet_bytes (matched mode)"
+  },
+  "cases": [
+    {
+      "id": "ce01_queue_saturation_udp",
+      "purpose": "queue saturation: offered rate exceeds sagged capacity on five_g; exercises buffer fill, overflow drops and queue-delay ceiling",
+      "workload": "bulk",
+      "transport": "udp",
+      "old_path": "bb",
+      "new_path": "five_g",
+      "rate_mbps": 60.0,
+      "capacity_floor_frac": 0.2,
+      "duration_s": 14.0,
+      "warmup_s": 6.0,
+      "packet_bytes": 1400,
+      "metrics": ["queue_delay_ms", "loss_frac", "throughput_mbps"]
+    },
+    {
+      "id": "ce02_sla_boundary_voice_udp",
+      "purpose": "SLA boundary: one-way delay just below the 150 ms voice threshold; sensitivity of the violation decision to jitter and small queue delay",
+      "workload": "voice",
+      "transport": "udp",
+      "old_path": "leo",
+      "new_path": "five_g",
+      "rate_mbps": 0.12,
+      "capacity_floor_frac": 0.2,
+      "duration_s": 14.0,
+      "warmup_s": 6.0,
+      "packet_bytes": 1400,
+      "metrics": ["delay_median_ms", "jitter_mean_ms", "loss_frac"]
+    },
+    {
+      "id": "ce03_sla_boundary_interactive_tcp",
+      "purpose": "SLA boundary with TCP: retransmission-driven loss estimate near the 5% interactive threshold",
+      "workload": "interactive",
+      "transport": "tcp",
+      "old_path": "five_g",
+      "new_path": "leo",
+      "rate_mbps": 2.0,
+      "capacity_floor_frac": 0.2,
+      "duration_s": 14.0,
+      "warmup_s": 6.0,
+      "packet_bytes": 1400,
+      "metrics": ["delay_median_ms", "loss_frac", "reordering_frac"]
+    },
+    {
+      "id": "ce04_switch_transient_video_udp",
+      "purpose": "switch transient: interruption duration and loss burst on the highest-RTT contrast (leo -> bb)",
+      "workload": "video",
+      "transport": "udp",
+      "old_path": "leo",
+      "new_path": "bb",
+      "rate_mbps": 4.0,
+      "capacity_floor_frac": 0.2,
+      "duration_s": 14.0,
+      "warmup_s": 6.0,
+      "packet_bytes": 1400,
+      "metrics": ["interruption_s", "loss_frac", "reordering_frac"]
+    }
+  ],
+  "repetitions_per_case_per_engine": 5,
+  "comparison": {
+    "statistics": [
+      "median and p95 per metric per engine",
+      "two-sample KS statistic and p-value on raw replicate values",
+      "Cliff's delta effect size (negligible <0.147, small <0.33, medium <0.474, large otherwise)",
+      "tail ratio: p95(engine_a) / p95(engine_b)"
+    ],
+    "threshold_rule": "accept a metric when |median difference| and p95 tail ratio fall inside the within-engine reproducibility band derived from the calibration sweeps' replicate deviations (analysis/cross_engine_thresholds.csv). No fixed percentage thresholds.",
+    "gate": "a case passes when all its metrics pass; the validation round passes when every case passes and no case is excluded without a documented reason"
+  }
+}
