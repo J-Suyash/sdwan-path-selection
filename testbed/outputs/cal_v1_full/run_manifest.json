@@ -1,0 +1,30 @@
+{
+  "calibration_columns": [
+    "old_rtt_ms",
+    "new_rtt_ms",
+    "old_jitter_ms",
+    "new_jitter_ms",
+    "packets_in_flight",
+    "flow_type",
+    "transport",
+    "queue_occupancy_frac",
+    "interruption_s",
+    "loss_frac",
+    "reordering_frac"
+  ],
+  "created_utc": "2026-11-10T09:18:28.696866+00:00",
+  "note": "Raw testbed output only. Do not enable switching calibration or claim cross-engine validation until repeated runs are audited.",
+  "runs": 120,
+  "scenario_path": "testbed/scenarios/switch_calibration_v1.json",
+  "scenario_sha256": "8ce6f9c26d358f8d0d0b0e399ba5acc026c73153a0f90da7abe548d47c4e8a9f",
+  "status": "raw_unvalidated",
+  "tool_versions": {
+    "mininet": "2.3.1b4",
+    "openvswitch": "ovs-vsctl (Open vSwitch) 4.0.0",
+    "platform": "Linux-7.3.1-1-cachyos-x86_64-with-glibc2.44",
+    "python": "3.14.9",
+    "tc": "tc utility, iproute2-7.3.0, libbpf 1.7.0",
+    "tcpdump": "tcpdump version 4.99.7",
+    "tshark": "TShark (Wireshark) 4.7.4."
+  }
+}

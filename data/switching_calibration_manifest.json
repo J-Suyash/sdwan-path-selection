@@ -1,0 +1,206 @@
+{
+  "config_fingerprint": "3d6d9c6dc5c22f48|shared_1000pkt",
+  "git_commit": "43f9104",
+  "scenario_sha256": "3d6d9c6dc5c22f4877026f9a276ed8b8d8096832c7d8f7f1f50ab4b06611b7e4",
+  "queue_limit_packets": 1000,
+  "per_path_queue_limit_packets": null,
+  "branch_profile": "medium",
+  "workload_regime": "normal",
+  "transports": [
+    "tcp",
+    "udp"
+  ],
+  "directed_transitions": [
+    "bb->five_g",
+    "bb->leo",
+    "five_g->bb",
+    "five_g->leo",
+    "leo->bb",
+    "leo->five_g"
+  ],
+  "expected_runs": 120,
+  "observed_runs": 120,
+  "missing_runs": [],
+  "excluded_runs": [
+    "e22-r03"
+  ],
+  "workloads": [
+    "bulk",
+    "interactive",
+    "video",
+    "voice"
+  ],
+  "min_repeats_required": 3,
+  "aggregate_traceability": {
+    "[62.0, 75.0, 0.3, 1.0, 'bulk', 'tcp', 'huge', 'low']": [
+      "e23-r00",
+      "e23-r01",
+      "e23-r02",
+      "e23-r03",
+      "e23-r04"
+    ],
+    "[62.0, 75.0, 0.3, 1.0, 'interactive', 'tcp', 'large', 'empty']": [
+      "e22-r00",
+      "e22-r01",
+      "e22-r02",
+      "e22-r03",
+      "e22-r04"
+    ],
+    "[62.0, 75.0, 0.3, 1.0, 'video', 'udp', 'large', 'empty']": [
+      "e21-r00",
+      "e21-r01",
+      "e21-r02",
+      "e21-r03",
+      "e21-r04"
+    ],
+    "[62.0, 75.0, 0.3, 1.0, 'voice', 'udp', 'medium', 'empty']": [
+      "e20-r00",
+      "e20-r01",
+      "e20-r02",
+      "e20-r03",
+      "e20-r04"
+    ],
+    "[62.0, 187.4, 0.3, 0.3, 'bulk', 'tcp', 'huge', 'low']": [
+      "e15-r00",
+      "e15-r01",
+      "e15-r02",
+      "e15-r03",
+      "e15-r04"
+    ],
+    "[62.0, 187.4, 0.3, 0.3, 'interactive', 'tcp', 'large', 'empty']": [
+      "e14-r00",
+      "e14-r01",
+      "e14-r02",
+      "e14-r03",
+      "e14-r04"
+    ],
+    "[62.0, 187.4, 0.3, 0.3, 'video', 'udp', 'large', 'empty']": [
+      "e13-r00",
+      "e13-r01",
+      "e13-r02",
+      "e13-r03",
+      "e13-r04"
+    ],
+    "[62.0, 187.4, 0.3, 0.3, 'voice', 'udp', 'medium', 'empty']": [
+      "e12-r00",
+      "e12-r01",
+      "e12-r02",
+      "e12-r03",
+      "e12-r04"
+    ],
+    "[75.0, 62.0, 1.0, 0.3, 'bulk', 'tcp', 'huge', 'low']": [
+      "e19-r00",
+      "e19-r01",
+      "e19-r02",
+      "e19-r03",
+      "e19-r04"
+    ],
+    "[75.0, 62.0, 1.0, 0.3, 'interactive', 'tcp', 'large', 'empty']": [
+      "e18-r00",
+      "e18-r01",
+      "e18-r02",
+      "e18-r03",
+      "e18-r04"
+    ],
+    "[75.0, 62.0, 1.0, 0.3, 'video', 'udp', 'large', 'empty']": [
+      "e17-r00",
+      "e17-r01",
+      "e17-r02",
+      "e17-r03",
+      "e17-r04"
+    ],
+    "[75.0, 62.0, 1.0, 0.3, 'voice', 'udp', 'medium', 'empty']": [
+      "e16-r00",
+      "e16-r01",
+      "e16-r02",
+      "e16-r03",
+      "e16-r04"
+    ],
+    "[75.0, 187.4, 1.0, 0.3, 'bulk', 'tcp', 'huge', 'low']": [
+      "e07-r00",
+      "e07-r01",
+      "e07-r02",
+      "e07-r03",
+      "e07-r04"
+    ],
+    "[75.0, 187.4, 1.0, 0.3, 'interactive', 'tcp', 'large', 'empty']": [
+      "e06-r00",
+      "e06-r01",
+      "e06-r02",
+      "e06-r03",
+      "e06-r04"
+    ],
+    "[75.0, 187.4, 1.0, 0.3, 'video', 'udp', 'large', 'empty']": [
+      "e05-r00",
+      "e05-r01",
+      "e05-r02",
+      "e05-r03",
+      "e05-r04"
+    ],
+    "[75.0, 187.4, 1.0, 0.3, 'voice', 'udp', 'medium', 'empty']": [
+      "e04-r00",
+      "e04-r01",
+      "e04-r02",
+      "e04-r03",
+      "e04-r04"
+    ],
+    "[187.4, 62.0, 0.3, 0.3, 'bulk', 'tcp', 'huge', 'low']": [
+      "e11-r01",
+      "e11-r02",
+      "e11-r03",
+      "e11-r04"
+    ],
+    "[187.4, 62.0, 0.3, 0.3, 'bulk', 'tcp', 'huge', nan]": [
+      "e11-r00"
+    ],
+    "[187.4, 62.0, 0.3, 0.3, 'interactive', 'tcp', 'huge', 'empty']": [
+      "e10-r00",
+      "e10-r01",
+      "e10-r02",
+      "e10-r03",
+      "e10-r04"
+    ],
+    "[187.4, 62.0, 0.3, 0.3, 'video', 'udp', 'large', 'empty']": [
+      "e09-r00",
+      "e09-r01",
+      "e09-r02",
+      "e09-r03",
+      "e09-r04"
+    ],
+    "[187.4, 62.0, 0.3, 0.3, 'voice', 'udp', 'large', 'empty']": [
+      "e08-r00",
+      "e08-r01",
+      "e08-r02",
+      "e08-r03",
+      "e08-r04"
+    ],
+    "[187.4, 75.0, 0.3, 1.0, 'bulk', 'tcp', 'huge', 'low']": [
+      "e03-r00",
+      "e03-r01",
+      "e03-r02",
+      "e03-r03",
+      "e03-r04"
+    ],
+    "[187.4, 75.0, 0.3, 1.0, 'interactive', 'tcp', 'huge', 'empty']": [
+      "e02-r00",
+      "e02-r01",
+      "e02-r02",
+      "e02-r03",
+      "e02-r04"
+    ],
+    "[187.4, 75.0, 0.3, 1.0, 'video', 'udp', 'large', 'empty']": [
+      "e01-r00",
+      "e01-r01",
+      "e01-r02",
+      "e01-r03",
+      "e01-r04"
+    ],
+    "[187.4, 75.0, 0.3, 1.0, 'voice', 'udp', 'large', 'empty']": [
+      "e00-r00",
+      "e00-r01",
+      "e00-r02",
+      "e00-r03",
+      "e00-r04"
+    ]
+  }
+}

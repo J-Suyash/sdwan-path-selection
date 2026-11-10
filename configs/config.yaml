@@ -12,7 +12,9 @@ env:
   workload_regime: null         # low | normal | peak | stress | null (time of day)
   queue_buffer_s: 0.25          # assumption; calibrate against Mininet
   transport_approximation: fluid-rate-v1
-  switching_calibration_path: null  # set after measured calibration is populated
+  # Measured calibration from the 2026-11-10 five-repetition Mininet
+  # sweep (testbed/outputs/cal_v1_full). Set to null to run uncalibrated.
+  switching_calibration_path: data/switching_calibration.csv
 
 # SLA budgets are experiment configuration, not universal requirements.
 budgets:
