@@ -184,9 +184,59 @@ def test_switching_interruption_uses_simulation_seconds(tmp_path):
     _, _, _, _, info_at_0 = env.step(1)
     _, _, _, _, info_at_2 = env.step(1)
     _, _, _, _, info_at_4 = env.step(1)
-    assert info_at_0["per_class"]["voice"]["loss"] >= 0.5
-    assert info_at_2["per_class"]["voice"]["loss"] >= 0.5
-    assert info_at_4["per_class"]["voice"]["loss"] < 0.5
+    # Switch at t=0, interruption 3 s, step interval 2 s:
+    # step 0 keeps the full measured effect (frac 1.0), step 2 is a
+    # partial step (frac 0.5 -> 1 - (1-l)*sqrt(1-L)), step 4 is clean.
+    loss_0 = info_at_0["per_class"]["voice"]["loss"]
+    loss_2 = info_at_2["per_class"]["voice"]["loss"]
+    loss_4 = info_at_4["per_class"]["voice"]["loss"]
+    assert loss_0 >= 0.5
+    assert loss_2 < loss_0  # partial-step fraction reduces the effect
+    assert loss_4 < 0.5
+
+
+def test_sub_second_switching_fractional_transients_are_prorated(tmp_path):
+    """Measured transients shorter than one decision step now count.
+
+    Regression: with a per-second binary rupture flag, the measured
+    sub-second Mininet interruptions (0.002-0.18 s) were invisible in the
+    emulator. The prorated exposure applies the measured effect to the
+    interrupted fraction of the step only.
+    """
+
+    calibration = tmp_path / "switching.csv"
+    pd.DataFrame(
+        [
+            {
+                "old_rtt_ms": 187,
+                "new_rtt_ms": 75,
+                "old_jitter_ms": 1,
+                "new_jitter_ms": 1,
+                "packets_in_flight": 20,
+                "flow_type": "voice",
+                "transport": "udp",
+                "queue_occupancy_frac": 0,
+                "interruption_s": 0.07,
+                "loss_frac": 0.5,
+                "reordering_frac": 0,
+            }
+        ]
+    ).to_csv(calibration, index=False)
+    cfg = SDWanConfig(
+        episode_seconds=4,
+        decision_interval_s=1.0,
+        primary_profile="small",
+        switching_calibration_path=str(calibration),
+    )
+    env = SDWanEnv(cfg, seed=1)
+    env.reset(seed=1)
+    _, _, _, _, info = env.step(1)
+    first_loss = info["per_class"]["voice"]["loss"]
+    _, _, _, _, info2 = env.step(1)
+    second_loss = info2["per_class"]["voice"]["loss"]
+    # Fractional exposure must be strictly between nothing and a full repose.
+    assert first_loss > second_loss
+    assert first_loss < 0.5  # 0.07 of the step interrupted only
 
 
 def test_stress_regime_override_is_reproducible():

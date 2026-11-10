@@ -39,6 +39,13 @@ from scripts.extract_sdncampus_distributions import (
     sha256_file,
 )
 
+# A FIN/RST record at or below this byte count is a teardown-only frame
+# (pure control traffic) under the source's length semantics; it is
+# counted as connection churn but excluded from payload size summaries.
+TEARDOWN_MAX_BYTES = 64
+
+BOOTSTRAP_REPLICATES_DEFAULT = 500
+
 TRANSFER_COLUMNS = {
     "Flow Duration",
     "Total Length of Fwd Packet",
@@ -47,18 +54,24 @@ TRANSFER_COLUMNS = {
     "RST Flag Count",
 }
 
+# Split key uses measured traffic volumes and timing only. Termination
+# flags are excluded: they partly determine the connection_end label, and
+# the spec forbids labels/outcomes in the split key.
+SPLIT_KEY_COLUMNS = ("Flow Duration", "Total Length of Fwd Packet", "Total Length of Bwd Packet")
+
 
 def record_split_keys(frame: pd.DataFrame) -> pd.Series:
-    """Salt-able keys from each record's own measures plus its position.
+    """Salt-able keys from record measures plus source row position.
 
     The audited SDNCampus CSV release carries no flow identity column
-    (IPs, ports and IDs are stripped; there are no timestamps either),
-    so the record's duration/byte/flag measures plus its row index form
-    the key; the index breaks content collisions.
+    (IPs, ports and IDs are stripped; there are no timestamps either), so
+    the record's duration/byte measures plus its row index form the key;
+    the index breaks content collisions. Termination flags are excluded
+    so the connection_end label stays outside the split key.
     """
 
     keys = pd.Series("", index=frame.index, dtype=str)
-    for column in TRANSFER_COLUMNS:
+    for column in SPLIT_KEY_COLUMNS:
         part = pd.to_numeric(frame[column], errors="coerce").fillna(-1)
         keys = keys + part.astype(str) + "|"
     return keys + frame.index.astype(str) + "|"
@@ -94,22 +107,41 @@ def summarize_transfer_group(
     bootstrap_replicates: int,
     rng: np.random.Generator,
 ) -> dict[str, float | int]:
-    """Summarize one half of the split for one connection-end class."""
+    """Summarize one half of the split for one connection-end class.
+
+    Payload-size statistics exclude teardown-only records (total bytes at
+    or below TEARDOWN_MAX_BYTES): measured FIN/RST teardown frames carry
+    no application payload in this release (31-byte medians). Their count
+    is retained separately so connection churn stays observable but does
+    not distort payload distributions.
+    """
 
     bytes_total = (
         pd.to_numeric(frame["Total Length of Fwd Packet"], errors="coerce").fillna(0.0)
         + pd.to_numeric(frame["Total Length of Bwd Packet"], errors="coerce").fillna(0.0)
     )
     duration_s = pd.to_numeric(frame["Flow Duration"], errors="coerce") / 1e6
-    values = bytes_total[mask].to_numpy(dtype=float)
+
+    selected = bytes_total[mask].to_numpy(dtype=float)
+    teardown_only = int((selected <= TEARDOWN_MAX_BYTES).sum())
+    payload_values = selected[selected > TEARDOWN_MAX_BYTES]
     positive = duration_s[mask].to_numpy(dtype=float) > 0
-    low, high = bootstrap_median_ci(values, replicates=bootstrap_replicates, rng=rng)
+    if payload_values.size:
+        low, high = bootstrap_median_ci(
+            payload_values, replicates=bootstrap_replicates, rng=rng
+        )
+        median = float(np.median(payload_values))
+        p95 = float(np.percentile(payload_values, 95))
+    else:
+        low = high = median = p95 = float("nan")
     return {
         "transfer_rows": int(mask.sum()),
-        "transfer_bytes_median": float(np.median(values)) if values.size else float("nan"),
+        "payload_rows": int(payload_values.size),
+        "teardown_only_rows": teardown_only,
+        "transfer_bytes_median": median,
         "transfer_bytes_median_ci_low": low,
         "transfer_bytes_median_ci_high": high,
-        "transfer_bytes_p95": float(np.percentile(values, 95)) if values.size else float("nan"),
+        "transfer_bytes_p95": p95,
         "transfer_positive_duration_rows": int(positive.sum()),
         "transfer_duration_median_s": float(np.nanmedian(duration_s[mask]))
         if positive.any()

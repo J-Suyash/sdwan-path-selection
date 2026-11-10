@@ -14,6 +14,7 @@ runs ~5,000x real time, so 200 simulated hours take a few wall minutes.
 import argparse
 import json
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -107,6 +108,19 @@ def run_episode(
                     },
                     sort_keys=True,
                 ),
+                # Split grouping: episodes are independent by workload
+                # seed, profile/regime scenario and trace window.
+                # Downstream train/validation/test partitions must group
+                # on this key so no window or seed leaks across splits.
+                "split_group": json.dumps(
+                    {
+                        "profile": env.cfg.primary_profile,
+                        "regime": env.cfg.workload_regime or "time_of_day",
+                        "seed": int(seed),
+                        "trace_window_start": env.trace_window_start,
+                    },
+                    sort_keys=True,
+                ),
             }
         )
         obs = next_obs
@@ -127,20 +141,65 @@ def run_episode(
         "seed": int(seed),
         "policy_version": policy.version,
         "simulator_version": SIMULATOR_VERSION,
+        "split_group": json.dumps(
+            {
+                "profile": env.cfg.primary_profile,
+                "regime": env.cfg.workload_regime or "time_of_day",
+                "seed": int(seed),
+                "trace_window_start": env.trace_window_start,
+            },
+            sort_keys=True,
+        ),
     }
+
+
+def validation_is_accepted(acceptance_path: str) -> bool:
+    """Cross-engine acceptance gate (owner decision 9 / spec section 6).
+
+    Final (non-preliminary) dataset export requires a recorded cross-engine
+    validation acceptance artefact produced after matched emulator/Mininet
+    runs pass their derived thresholds.
+    """
+
+    path = Path(acceptance_path)
+    if not path.exists():
+        return False
+    try:
+        payload = json.loads(path.read_text())
+    except json.JSONDecodeError:
+        return False
+    return bool(payload.get("accepted")) and bool(payload.get("validation_run_id"))
+
+
+ACCEPTANCE_PATH = "data/cross_engine_validation_acceptance.json"
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--datasets", nargs="+", default=["d1", "d2", "d3"])
     ap.add_argument("--hours", type=float, default=60.0)
-    ap.add_argument("--out", default="data/datasets")
+    ap.add_argument("--out", default=None)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--profile", choices=["small", "medium", "large"], default="medium")
     ap.add_argument(
         "--regime", choices=["low", "normal", "peak", "stress"], default=None
     )
+    ap.add_argument(
+        "--finalize",
+        action="store_true",
+        help="Export final datasets. Refuses unless cross-engine "
+        f"validation acceptance exists at {ACCEPTANCE_PATH}.",
+    )
     args = ap.parse_args()
+
+    if args.out is None:
+        args.out = "data/datasets" if args.finalize else "data/datasets_preliminary"
+    if args.finalize and not validation_is_accepted(ACCEPTANCE_PATH):
+        raise SystemExit(
+            "refusing to export final datasets: cross-engine validation "
+            f"acceptance not found or not accepted at {ACCEPTANCE_PATH}; "
+            "generate preliminary datasets (default) instead"
+        )
 
     total_episodes = max(1, round(args.hours))
     manifest = []

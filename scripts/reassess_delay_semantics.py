@@ -41,10 +41,17 @@ def main():
     parser.add_argument("--profile", type=str, default="medium")
     parser.add_argument("--regime", type=str, default=None)
     parser.add_argument("--out", type=str, default="analysis/baseline_results.csv")
+    parser.add_argument(
+        "--calibrated",
+        action="store_true",
+        help="Enable the measured switching model from configs/config.yaml path.",
+    )
     args = parser.parse_args()
 
     cfg = SDWanConfig(primary_profile=args.profile)
     cfg.workload_regime = args.regime
+    if args.calibrated:
+        cfg.switching_calibration_path = "data/switching_calibration.csv"
 
     policies = {
         "threshold_hysteresis": ThresholdHysteresis(),

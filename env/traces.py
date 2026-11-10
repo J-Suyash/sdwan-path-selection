@@ -70,6 +70,7 @@ def build_series(
         "loss": np.clip(loss, 0, 1),
         "capacity": capacity,
         "up": ~outage,
+        "window_start": str(grid[0]) if len(grid) else None,
     }
 
 
@@ -89,4 +90,5 @@ def synthetic_series(
         "loss": loss,
         "capacity": capacity,
         "up": np.ones(steps, dtype=bool),
+        "window_start": None,
     }

@@ -44,6 +44,7 @@ class SDWanEnv(gymnasium.Env):
         self.episode_start_hour = float(self.np_random.uniform(0, 24))
 
         self.series = {}
+        self.trace_window_start = {}
         for underlay in self.cfg.underlays:
             source = self.cfg.underlay_source[underlay]
             try:
@@ -57,6 +58,9 @@ class SDWanEnv(gymnasium.Env):
                 self.cfg.fallback_rtt_ms[underlay],
                 self.cfg.cap_mbps[underlay],
                 self.cfg.decision_interval_s,
+            )
+            self.trace_window_start[underlay] = str(
+                self.series[underlay].get("window_start") or "synthetic"
             )
 
         self.history = {
@@ -224,9 +228,17 @@ class SDWanEnv(gymnasium.Env):
             else 0.0
         )
         now_s = idx * self.cfg.decision_interval_s
-        disrupted = now_s < self.disrupt_until[cls]
         effect = self.switch_effects[cls]
-        loss = 1.0 - (1.0 - loss) * (1.0 - effect.loss_frac) if disrupted else loss
+        # Disruption is prorated to the fraction of this decision step that
+        # is still interrupted. Sub-second transients therefore show up as
+        # scaled loss/reordering contributions instead of being invisible
+        # to per-second accounting or domineering whole steps.
+        disrupted_s = min(
+            self.cfg.decision_interval_s, max(0.0, self.disrupt_until[cls] - now_s)
+        )
+        disrupted_frac = disrupted_s / self.cfg.decision_interval_s
+        if disrupted_frac > 0.0:
+            loss = 1.0 - (1.0 - loss) * (1.0 - effect.loss_frac) ** disrupted_frac
         delay = delay_rtt + queue_delay if up else float("inf")
         jitter = (
             abs(
@@ -236,8 +248,8 @@ class SDWanEnv(gymnasium.Env):
             * self.cfg.oneway_delay_factor
         )
         jitter += queue_delay * 0.2
-        if disrupted:
-            jitter += effect.reordering_frac * max(rtt, 1.0)
+        if disrupted_frac > 0.0:
+            jitter += disrupted_frac * effect.reordering_frac * max(rtt, 1.0)
 
         thr_d, thr_j, thr_l = self.cfg.sla[cls]
         violated = (delay > thr_d) or (jitter > thr_j) or (loss > thr_l)

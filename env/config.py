@@ -118,6 +118,9 @@ class SDWanConfig:
             raise ValueError("queue_buffer_s must be non-negative")
         if not 0 < self.oneway_delay_factor <= 1:
             raise ValueError("oneway_delay_factor must be in (0, 1]")
+        for underlay, rtt in self.fallback_rtt_ms.items():
+            if rtt <= 0:
+                raise ValueError(f"fallback_rtt_ms[{underlay!r}] must be positive")
         if self.workload_regime not in {None, "low", "normal", "peak", "stress"}:
             raise ValueError(
                 "workload_regime must be low, normal, peak, stress, or None"

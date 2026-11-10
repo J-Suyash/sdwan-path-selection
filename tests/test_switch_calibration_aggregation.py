@@ -20,10 +20,11 @@ def _raw_frame(reps: int, key_suffix: str = "") -> pd.DataFrame:
             "transport": ["udp"] * reps,
             "packets_in_flight": np.full(reps, 14.0),
             "queue_occupancy_frac": np.full(reps, 0.001),
-            "interruption_s": np.array([0.05, 0.07, 0.06])[:reps],
+            "interruption_s": np.resize([0.05, 0.07, 0.06], reps),
             "loss_frac": np.zeros(reps),
             "reordering_frac": np.zeros(reps),
             "route_update_s": np.full(reps, 0.09),
+            "sent_frames": np.full(reps, 5835.0),
             "repetition": list(range(reps)),
         }
     )
@@ -38,6 +39,19 @@ def test_build_rows_promotes_only_sufficient_repeats():
     usable = rows[rows["quality"] == "usable"]
     assert len(usable) == 1
     assert usable.iloc[0]["interruption_s_mean"] == 0.06
+
+
+def test_build_rows_trims_stall_outliers():
+    frame = with_buckets(_raw_frame(5))
+    frame.loc[frame.index[3], "sent_frames"] = 2047  # stalled connection
+    frame.loc[frame.index[3], "interruption_s"] = 80.85
+    rows, _ = build_rows(frame, min_repeats=3)
+    assert len(rows) == 1
+    row = rows.iloc[0]
+    assert row["n_runs"] == 4
+    assert row["runs_dropped_stall"] == 1
+    assert row["quality"] == "trimmed_usable"
+    assert row["interruption_s_mean"] == 0.0625  # (0.05+0.07+0.06+0.05)/4
 
 
 def test_fraction_cv_uses_max_scale_for_near_zero_means():
