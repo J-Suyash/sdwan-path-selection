@@ -1,0 +1,197 @@
+{
+  "name": "switch_calibration_v2_perpath",
+  "server_ip": "10.0.0.100",
+  "paths": {
+    "bb": {
+      "capacity_mbps": 200.0,
+      "one_way_delay_ms": 93.7,
+      "jitter_ms": 0.3,
+      "loss_pct": 0.0
+    },
+    "five_g": {
+      "capacity_mbps": 150.0,
+      "one_way_delay_ms": 37.5,
+      "jitter_ms": 1.0,
+      "loss_pct": 0.0
+    },
+    "leo": {
+      "capacity_mbps": 100.0,
+      "one_way_delay_ms": 31.0,
+      "jitter_ms": 0.3,
+      "loss_pct": 0.0
+    }
+  },
+  "workloads": {
+    "voice": {
+      "flow_type": "voice",
+      "transport": "udp",
+      "client_ip": "10.0.0.11",
+      "server_port": 5004,
+      "rate_mbps": 0.15,
+      "duration_s": 12.0,
+      "warmup_s": 4.0,
+      "packet_bytes": 240
+    },
+    "video": {
+      "flow_type": "video",
+      "transport": "udp",
+      "client_ip": "10.0.0.12",
+      "server_port": 5000,
+      "rate_mbps": 1.95,
+      "duration_s": 14.0,
+      "warmup_s": 6.0,
+      "packet_bytes": 1200
+    },
+    "interactive": {
+      "flow_type": "interactive",
+      "transport": "tcp",
+      "client_ip": "10.0.0.13",
+      "server_port": 5222,
+      "rate_mbps": 1.0,
+      "duration_s": 14.0,
+      "warmup_s": 6.0,
+      "packet_bytes": 300
+    },
+    "bulk": {
+      "flow_type": "bulk",
+      "transport": "tcp",
+      "client_ip": "10.0.0.14",
+      "server_port": 9999,
+      "rate_mbps": 20.0,
+      "duration_s": 14.0,
+      "warmup_s": 6.0,
+      "packet_bytes": 1400
+    }
+  },
+  "events": [
+    {
+      "workload": "voice",
+      "old_path": "bb",
+      "new_path": "five_g"
+    },
+    {
+      "workload": "video",
+      "old_path": "bb",
+      "new_path": "five_g"
+    },
+    {
+      "workload": "interactive",
+      "old_path": "bb",
+      "new_path": "five_g"
+    },
+    {
+      "workload": "bulk",
+      "old_path": "bb",
+      "new_path": "five_g"
+    },
+    {
+      "workload": "voice",
+      "old_path": "five_g",
+      "new_path": "bb"
+    },
+    {
+      "workload": "video",
+      "old_path": "five_g",
+      "new_path": "bb"
+    },
+    {
+      "workload": "interactive",
+      "old_path": "five_g",
+      "new_path": "bb"
+    },
+    {
+      "workload": "bulk",
+      "old_path": "five_g",
+      "new_path": "bb"
+    },
+    {
+      "workload": "voice",
+      "old_path": "bb",
+      "new_path": "leo"
+    },
+    {
+      "workload": "video",
+      "old_path": "bb",
+      "new_path": "leo"
+    },
+    {
+      "workload": "interactive",
+      "old_path": "bb",
+      "new_path": "leo"
+    },
+    {
+      "workload": "bulk",
+      "old_path": "bb",
+      "new_path": "leo"
+    },
+    {
+      "workload": "voice",
+      "old_path": "leo",
+      "new_path": "bb"
+    },
+    {
+      "workload": "video",
+      "old_path": "leo",
+      "new_path": "bb"
+    },
+    {
+      "workload": "interactive",
+      "old_path": "leo",
+      "new_path": "bb"
+    },
+    {
+      "workload": "bulk",
+      "old_path": "leo",
+      "new_path": "bb"
+    },
+    {
+      "workload": "voice",
+      "old_path": "five_g",
+      "new_path": "leo"
+    },
+    {
+      "workload": "video",
+      "old_path": "five_g",
+      "new_path": "leo"
+    },
+    {
+      "workload": "interactive",
+      "old_path": "five_g",
+      "new_path": "leo"
+    },
+    {
+      "workload": "bulk",
+      "old_path": "five_g",
+      "new_path": "leo"
+    },
+    {
+      "workload": "voice",
+      "old_path": "leo",
+      "new_path": "five_g"
+    },
+    {
+      "workload": "video",
+      "old_path": "leo",
+      "new_path": "five_g"
+    },
+    {
+      "workload": "interactive",
+      "old_path": "leo",
+      "new_path": "five_g"
+    },
+    {
+      "workload": "bulk",
+      "old_path": "leo",
+      "new_path": "five_g"
+    }
+  ],
+  "repetitions": 5,
+  "queue_limit_packets": 1000,
+  "per_path_queue_limit_packets": {
+    "bb": 4166,
+    "five_g": 3125,
+    "leo": 2083
+  },
+  "branch_profile": "medium",
+  "workload_regime": "normal"
+}

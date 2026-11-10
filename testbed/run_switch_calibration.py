@@ -298,7 +298,12 @@ def run_one(
     pcap = summarize_pcap(pcap_path)
     old_path = scenario.paths[event.old_path]
     new_path = scenario.paths[event.new_path]
-    queue_limit_bytes = scenario.queue_limit_packets * 1500
+    # The backlog sits on the old path's qdisc, whose limit is the
+    # per-path value when configured; convert the packet limit to bytes
+    # with the workload's actual packet size, not a fixed 1500.
+    queue_limit_bytes = (
+        scenario.queue_limit_for(event.old_path) * workload.packet_bytes
+    )
     old_backlog = parse_qdisc_backlog_bytes(qdisc_before)
     packets_in_flight = max(
         1.0,
