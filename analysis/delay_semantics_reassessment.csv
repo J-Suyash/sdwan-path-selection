@@ -1,0 +1,13 @@
+algo,profile,seed,cost_per_h,viol_voice_per_h,viol_video_per_h,viol_interactive_per_h,viol_bulk_per_h,switches_per_min,wall_s
+rttfix_threshold_hysteresis,medium,0,3.2415182491986645,80.0,80.0,68.0,0.0,0.05,7.3
+rttfix_threshold_hysteresis,medium,1,6.820153427926688,952.0,952.0,944.0,0.0,0.05,9.4
+rttfix_threshold_hysteresis,medium,2,0.40491144814606495,1.0,1.0,1.0,0.0,0.05,5.7
+rttfix_best_quality,medium,0,3.375909642121071,84.0,84.0,80.0,0.0,0.06666666666666667,7.6
+rttfix_best_quality,medium,1,6.960747558552597,977.0,977.0,963.0,0.0,0.06666666666666667,9.0
+rttfix_best_quality,medium,2,0.41810493071463484,0.0,0.0,0.0,0.0,0.06666666666666667,5.9
+rttfix_lowest_cost_within_sla,medium,0,1.243309211022334,1956.0,1952.0,1929.0,0.0,0.95,9.1
+rttfix_lowest_cost_within_sla,medium,1,1.799109363921551,2673.0,2701.0,2677.0,0.0,1.0166666666666666,10.5
+rttfix_lowest_cost_within_sla,medium,2,0.2019870228344316,48.0,39.0,38.0,0.0,1.0666666666666667,7.1
+rttfix_random,medium,0,1.8132349827996002,1288.0,1583.0,1187.0,0.0,158.55,7.0
+rttfix_random,medium,1,3.4365959043762997,1569.0,2118.0,1557.0,0.0,159.85,8.4
+rttfix_random,medium,2,0.231083905409871,1104.0,1024.0,945.0,0.0,160.91666666666666,4.9
