@@ -59,9 +59,43 @@ From `analysis/sdncampus_transfer_summaries.csv` (seed 20261110,
 ## Limitations
 
 - `TEARDOWN_MAX_BYTES = 64` is a documented modelling threshold, not a
-  source field. It is set above the observed 31 B teardown median and
-  below the smallest payload-bearing medians (280 B); the sensitivity
-  of the medians to the exact cutoff (e.g. 32 vs 128 B) has not been
-  swept.
+  source field. Its sensitivity was measured (2026-11-10,
+  `analysis/teardown_cutoff_sensitivity.csv`; per-cutoff artefacts at
+  32/64/128 B with manifests): see the next section.
 - The release has no timestamps, so teardown *rates* over time are not
   recoverable — only per-record classification.
+
+## Cutoff sensitivity (32 / 64 / 128 B)
+
+Re-ran the full extraction at each cutoff (same seed 20261110, same
+split; per-cutoff outputs and manifests committed). Estimation-half
+results for the FIN/RST class, where the cutoff bites:
+
+| App | Teardown rows (32/64/128) | FIN median B (32/64/128) | Censored median B (32/64/128) |
+|---|---|---|---|
+| dropbox | 296/302/362 | 444/482/656 | 5,760 / 5,760 / 5,760 (identical) |
+| gmail | 1,649/1,693/1,712 | 213/567/725 | 47,396 / 50,263 / 52,972 (±5.5%) |
+| googlemeet | 352/369/375 | 141/347/620 | 26,969 / 27,132 / 27,663 (±1.3%) |
+| voip | 525/525/531 | 1,861 / 1,861 / 1,861 (identical) | 2,236 / 2,236 / 2,236 (identical) |
+
+**Justification of the selected 64 B cutoff:**
+
+1. The measured teardown peak is 31 B (pure control frames); 64 B is
+   2× that median and clears the pure-control band with margin.
+2. The 32–64 B band holds only ~2.5% of gmail FIN rows (44 of ~1,800):
+   classification there is genuinely ambiguous, and the 64 B choice
+   keeps them as teardowns consistent with the 31 B peak.
+3. Payload-bearing FIN medians are ≥280 B (googlemeet held-out), so 64
+   B never truncates a clearly payload-bearing population.
+4. **Generated workload impact: none today.** `env/workload.py` is
+   rate-based (`DEFAULT_BRANCH_PROFILES`, explicit assumptions); the
+   transfer summaries are evidence for future profile updates, not
+   direct inputs. The censored-median movement (≤5.5% gmail, ≤1.3%
+   meet, 0% others) bounds the effect when those profiles are
+   eventually recorded in `docs/parameter_registry.csv`.
+
+The original source CSVs are untouched (read-only extraction with
+sha256-pinned provenance in every manifest); all three cutoff outputs
+are retained, and the canonical artefact
+(`analysis/sdncampus_transfer_summaries.csv`) records its cutoff in the
+per-row `teardown_max_bytes` column and the manifest.
