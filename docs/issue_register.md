@@ -73,10 +73,12 @@ its source field or controlled measurement is recorded in
 6. **Switching calibration = repeated privileged Mininet runs** covering
    UDP and TCP, multiple path combinations (broadband, 5G, LEO legs) and
    repeated measurements, filling `data/switching_calibration_template.csv`.
-7. **Held-out session-level and transfer-level distribution summaries**
-   proceed in parallel with the Mininet work. (Transfer level completed
-   2026-11-10; session level verified unavailable in the SDNCampus
-   release — identity columns are stripped.)
+7. **Held-out flow-record summary extraction (plus transfer-level
+   distribution summaries)** proceeds in parallel with the Mininet
+   work. (Transfer level completed 2026-11-10; session level verified
+   unavailable in the SDNCampus release — identity columns are
+   stripped. The strongest supported guarantee is a deterministic
+   row-level holdout; see `docs/heldout_split_verification.md`.)
 8. **Matched emulator/Mininet scenarios** and derived validation
    thresholds follow from measured uncertainty and repeatability.
 9. **Gate tightened:** no regenerated final RL datasets and no CQL/IQL
@@ -105,10 +107,11 @@ its source field or controlled measurement is recorded in
 | P0 | Complete | Repository/file audit for the six candidate datasets | Network access | `docs/dataset_audit.md` records a role decision backed by remote file evidence or an explicit access blocker. SEARCHLIGHT remains reference-only pending access. |
 | P0 | Complete | Review branch profiles and parameter registry | Owner selects primary evaluation profile | Owner selected `medium` (2026-11-10); `small`/`large` reserved for generalisation. |
 | P0 | Complete | Validate hierarchy and queue invariants | Current generator and emulator | Deterministic replay, queue bound/conservation tests and explicit session/flow lifecycle tests pass. |
-| P1 | Complete | Extract distributions from accepted datasets | P0 audit | Flow profiles (four applications) plus held-out transfer-level continuations with bootstrap intervals and reprovenanced FIN/censoring classification (`analysis/transfer_summaries.md`, 2026-11-10). Session level is unavailable from this source: the release strips user/device/session identity; generator keeps explicit assumptions. Remaining: LENS-field pinning only if LENS is adopted. |
-| P1 | In progress | Build Mininet matched scenarios and switching measurements | P0 profile, underlay traces, method choice | Matched-scenario delays verified against trace medians (RTT/2) and committed (`testbed/scenarios/switch_calibration_v1.json`); 24-event 1-rep sanity sweep passed 24/24; the 5-repetition (120-run) UDP+TCP priority sweep is running. Remaining: repeatability audit of the sweep, aggregation to >=3-repeat rows, and cross-direction in-flight/occupancy coverage. |
-| P1 | Blocked | Cross-engine validation | P1 workload extraction and testbed | Repeat runs report error distributions and intervals; thresholds are derived, not assumed. |
-| P2 | Blocked | Regenerate baseline transition datasets | P1 validation | Metadata includes profile, seed, trace segment, policy/simulator version, constraints and behavior probability. |
+| P1 | Complete | Extract distributions from accepted datasets | P0 audit | Flow profiles (four applications) plus held-out flow-record summaries with bootstrap intervals, a deterministic row-level holdout key excluding labels, and reprovenanced FIN/censoring classification with teardown-only records separated (`analysis/transfer_summaries.md`, `docs/heldout_split_verification.md`, `docs/termination_and_censoring_audit.md`, 2026-11-10). Session level is unavailable from this source: the release strips user/device/session identity; generator keeps explicit assumptions. Remaining: LENS-field pinning only if LENS is adopted. |
+| P1 | Complete | Build Mininet matched scenarios and switching measurements | P0 profile, underlay traces, method choice | 120/120-run UDP+TCP sweep completed (all 6 directed transitions, 5 reps). Aggregation: 24/25 cells ≥3-repeat usable (1 NaN-occupancy insufficient, 1 stall `e22-r03` excluded); manifest with config fingerprint `3d6d9c6dc5c22f48\|shared_1000pkt`, expected=observed=120, per-run traceability (`data/switching_calibration_manifest.json`, `docs/switching_calibration_report.md`). Emulator consumes the 119 calibrated rows via `SwitchingModel`. Caveat: rows are shared-1000-pkt-queue only; per-path-limit scenarios need a new round. |
+| P1 | Complete | Reassess rankings after RTT/one-way fix | P1 extraction, emulator fix | Semantics verified per source and pinned by 8-test battery; violations decomposed per class/underlay/seed/cause with factor sensitivity 0.45/0.5/0.55 (`docs/rtt_semantics_and_sla_audit.md`, `analysis/sla_violation_decomposition.csv`). Finding: violations are five_g queue-congestion-driven; zero outage and zero pure path-delay breaches; insensitive to ±10% factor. |
+| P1 | Blocked | Cross-engine validation | P1 switching measurements, matched scenarios | Repeat runs report error distributions and intervals; thresholds are derived, not assumed. Must include SLA-boundary scenarios and per-path queue limits (new sweep round, separate fingerprint). |
+| P2 | Blocked | Regenerate baseline transition datasets | P1 validation | Metadata includes profile, seed, trace segment, policy/simulator version, constraints, behavior probability and leakage-safe `split_group`; `generate_datasets.py --finalize` refuses without a recorded cross-engine acceptance artefact (`data/cross_engine_validation_acceptance.json`). |
 | P2 | Blocked | Train CQL/IQL/BC and validate FQE/WIS | P2 datasets and support audit | Held-out evaluation reports ESS, weight degeneracy, bootstrap intervals and support by regime. |
 | P3 | Blocked | Shielded online test and generalisation suite | P2 acceptance | Runtime fallback and stress regimes pass documented safety gates, or a negative result is recorded. |
 
