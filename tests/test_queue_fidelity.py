@@ -115,3 +115,29 @@ def test_capacity_floor_applied_in_trace_build():
     series = build_series(df, steps, rng, fallback_rtt_ms=50.0, cap_mbps=100.0)
     assert (series["capacity"] <= 100.0 + 1e-9).all()
     assert (series["capacity"] >= 20.0 - 1e-9).all()  # 20% floor
+
+
+def test_matched_mode_queue_mapping():
+    """Cross-engine matched mode: emulator buffers mirror the testbed's
+    per-path packet limits (limit_packets * packet_bytes)."""
+
+    limits = {"bb": 4166, "five_g": 3125, "leo": 2083}
+    packet_bytes = 1400
+    cfg = SDWanConfig(
+        primary_profile="medium",
+        queue_buffer_bytes={u: limits[u] * packet_bytes for u in limits},
+    )
+    assert cfg.queue_buffer_bytes["five_g"] == 3125 * 1400
+    env = SDWanEnv(cfg, seed=1)
+    env.reset(seed=1)
+    for underlay in env.cfg.underlays:
+        assert env.queues[underlay].buffer_bytes == pytest.approx(
+            limits[underlay] * packet_bytes
+        )
+
+
+def test_matched_mode_validation():
+    with pytest.raises(ValueError, match="missing underlays"):
+        SDWanConfig(queue_buffer_bytes={"bb": 1000.0})
+    with pytest.raises(ValueError, match="must be positive"):
+        SDWanConfig(queue_buffer_bytes={"bb": 0.0, "five_g": 1.0, "leo": 1.0})

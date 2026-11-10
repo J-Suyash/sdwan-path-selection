@@ -71,6 +71,11 @@ class SDWanConfig:
     # Bounded fluid queue approximation. The buffer is expressed as seconds
     # of nominal capacity so it scales across underlays.
     queue_buffer_s: float = 0.25
+    # Optional matched-mode override: explicit per-underlay buffer sizes
+    # in bytes, used by cross-engine cases to mirror the testbed's
+    # per-path packet limits (limit_packets * packet_bytes). When set,
+    # it replaces the cap_mbps * queue_buffer_s sizing.
+    queue_buffer_bytes: dict[str, float] | None = None
     queue_discipline: str = "fifo-fluid"
     transport_approximation: str = "fluid-rate-v1"
 
@@ -116,6 +121,17 @@ class SDWanConfig:
             )
         if self.queue_buffer_s < 0:
             raise ValueError("queue_buffer_s must be non-negative")
+        if self.queue_buffer_bytes is not None:
+            missing = set(self.underlays) - set(self.queue_buffer_bytes)
+            if missing:
+                raise ValueError(
+                    f"queue_buffer_bytes missing underlays: {sorted(missing)}"
+                )
+            for underlay, size in self.queue_buffer_bytes.items():
+                if size <= 0:
+                    raise ValueError(
+                        f"queue_buffer_bytes[{underlay!r}] must be positive"
+                    )
         if not 0 < self.oneway_delay_factor <= 1:
             raise ValueError("oneway_delay_factor must be in (0, 1]")
         for underlay, rtt in self.fallback_rtt_ms.items():

@@ -84,7 +84,11 @@ class SDWanEnv(gymnasium.Env):
         self.recent_violations = {c: deque(maxlen=10) for c in self.cfg.classes}
         self.queues = {
             u: FluidQueue(
-                buffer_bytes=self.cfg.cap_mbps[u] * 1e6 / 8.0 * self.cfg.queue_buffer_s
+                buffer_bytes=(
+                    self.cfg.queue_buffer_bytes[u]
+                    if self.cfg.queue_buffer_bytes is not None
+                    else self.cfg.cap_mbps[u] * 1e6 / 8.0 * self.cfg.queue_buffer_s
+                )
             )
             for u in self.cfg.underlays
         }
