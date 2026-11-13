@@ -14,10 +14,16 @@ runs ~5,000x real time, so 200 simulated hours take a few wall minutes.
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+# Repo-local imports (env, policies) without requiring PYTHONPATH: the
+# repo is a flat tree, not a package, so a bare `python scripts/...` from
+# the repo root must still find them (mirrors conftest.py).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from env import SDWanConfig, SDWanEnv
 from policies.incumbents import (

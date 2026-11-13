@@ -5,9 +5,15 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import sys
 from pathlib import Path
 
 import pandas as pd
+
+# Repo-local import (offline.ope) without requiring PYTHONPATH: the repo
+# is a flat tree, not a package, so a bare `python scripts/audit_...`
+# from the repo root must still find it (mirrors conftest.py).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from offline.ope import support_report
 
