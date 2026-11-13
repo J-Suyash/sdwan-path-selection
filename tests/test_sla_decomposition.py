@@ -73,6 +73,7 @@ def test_diagnose_does_not_diverge_trajectory():
     assert results[0] == results[1]
 
 
+@pytest.mark.sla_traces
 def test_decomposition_reproduces_violations_from_raw_transitions():
     """Re-run the reference factor (0.5) from scratch: seed-level voice
     violation counts must match the committed CSV (80 / 952 / 1)."""
@@ -80,6 +81,17 @@ def test_decomposition_reproduces_violations_from_raw_transitions():
     cfg = _config()
     cfg.oneway_delay_factor = 0.5
     policy = ThresholdHysteresis()
+    probe = SDWanEnv(cfg)  # same loaders as the re-runs below
+    probe.reset(seed=0)
+    missing = sorted(u for u, w in probe.trace_window_start.items() if w == "synthetic")
+    if missing:
+        pytest.skip(
+            f"synthetic trace fallback active for {missing}: the 80/952/1 "
+            "counts are recorded against real traces and cannot be "
+            "reproduced from the synthetic random-walk path. See "
+            "data/README.md to obtain the raw sources and rebuild the "
+            "missing parquets with: python scripts/preprocess_traces.py all"
+        )
     per_seed_voice, total_rows = [], 0
     for seed in range(3):
         env = SDWanEnv(cfg, seed=seed)
