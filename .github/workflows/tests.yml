@@ -1,0 +1,30 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Create the Python 3.11 environment
+        run: uv venv --python 3.11
+      # CPU-only torch, on its own line and ahead of requirements.txt: the
+      # RL stack (stable-baselines3, d3rlpy) depends on torch but the
+      # requirements leave it unpinned, so resolving it from the default
+      # index would pull the CUDA build, GBs of unusable wheels on a runner
+      # with no GPU.
+      - name: Install PyTorch (CPU)
+        run: uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Install requirements.txt
+        run: uv pip install -r requirements.txt
+      # Deliberately no data step. data/raw/ and the processed parquet files
+      # are gitignored and absent on a fresh checkout, so whatever the suite
+      # reports about the committed traces and SLA evidence comes from the
+      # checkout alone: the absence has to stay visible here, not be filled in
+      # with fabricated inputs.
+      - name: Run the test suite
+        run: .venv/bin/python -m pytest -q
