@@ -1,0 +1,9 @@
+# Minimal pytest configuration for a flat (non-packaged) repository: the
+# emulator and analysis modules are imported from the tree via conftest.py.
+# This file exists to register the custom marker below so that every
+# pytest invocation (including `-p no:cacheprovider` or CI variants) runs
+# warning-free per the project's constraint of keeping `pytest -q` clean.
+[tool.pytest.ini_options]
+markers = [
+    "sla_traces: verifies the committed SLA decomposition evidence (80/952/1) against raw emulator transitions; requires the processed trace parquets and skips with instructions when only the synthetic fallback is available (see data/README.md)",
+]
