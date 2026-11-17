@@ -6,18 +6,20 @@ by the *within-engine* reproducibility of the same measurement. We take
 the calibration sweeps' per-cell replicate spread and use its q90 across
 cells as the band. No fixed percentage thresholds are invented.
 
-Statistic naming (corrected): the repeatability JSON stores mean/min/max
-per cell, not raw replicates, so the per-cell spread is reconstructed as
-the *half-range* ``(max - min) / 2``. The half-range equals the maximum
-deviation from the midrange, but it is NOT the maximum deviation from the
-median: for skewed replicates such as [0, 0, 0, 0, 10] the median is 0
-and the true maximum deviation from the median is 10, while the
-half-range is 5. The half-range can therefore understate the intended
-quantity by up to a factor of two. Whether the half-range or the true
-maximum deviation from the cell median is the appropriate
-reproducibility statistic is a research decision for the owner; this
-script only reports the half-range it has always computed, now under an
-honest name.
+Statistic naming (corrected): this script computes the per-cell spread
+as the *half-range* ``(max - min) / 2`` from the stored per-cell
+extremes. The half-range equals the maximum deviation from the midrange,
+but it is NOT the maximum deviation from the median: for skewed
+replicates such as [0, 0, 0, 0, 10] the median is 0 and the true maximum
+deviation from the median is 10, while the half-range is 5. The
+half-range can therefore understate that quantity by up to a factor of
+two. (The repeatability JSON also stores ``<metric>_per_repetition``
+values per cell, so the true maximum deviation from the median is
+computable from the same artifacts; this script retains its historical
+min/max-based computation.) Whether the half-range or the true maximum
+deviation from the cell median is the appropriate reproducibility
+statistic is a research decision for the owner; this script only reports
+the half-range it has always computed, now under an honest name.
 
     uv run python scripts/derive_cross_engine_thresholds.py \
         --repeatability testbed/outputs/cal_v1_full/repeatability.json \
@@ -42,11 +44,11 @@ METRICS = {
 def per_cell_max_deviation(rows: list[dict], columns: list[str]) -> dict[str, list[float]]:
     """Per-cell half-range (max - min) / 2 per cell per metric.
 
-    The repeatability JSON stores mean/min/max per cell, not raw
-    replicates, so the spread is reconstructed from the stored extremes.
+    The spread is reconstructed from the stored per-cell extremes.
     This is the half-range, not the maximum deviation from the median;
-    see the module docstring for the skewed-replicate caveat. The name of
-    this function is retained for import compatibility.
+    see the module docstring for the skewed-replicate caveat and the
+    available per-repetition values. The name of this function is
+    retained for import compatibility.
     """
 
     deviations: dict[str, list[float]] = {name: [] for name in METRICS}
