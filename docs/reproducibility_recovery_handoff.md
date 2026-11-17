@@ -213,3 +213,54 @@ statistic choice, are owner decisions.
    capacity (static TC at floor rate vs time-varying), which emulator
    trace windows cases use, and packet-size transfer effects.
 5. Final review and acceptance of any validation round.
+
+## Engineering follow-through 2026-11-18 (commits de9b28b, 4461cbe)
+
+Post-handoff, non-scientific defects fixed on the same branch; no
+scientific behavior, threshold or acceptance question was changed.
+
+1. CLI import bootstrap: `run_baseline.py`, `train_offline.py` and
+   `offline_sweep.py` failed with `ModuleNotFoundError: env` unless
+   `PYTHONPATH=.` was set. All direct entrypoints now carry the same
+   repo-root bootstrap as `generate_datasets.py`/`audit_offline_dataset.py`,
+   and `tests/test_cli_entrypoints.py` guards all seven from a foreign
+   working directory with `PYTHONPATH` removed.
+2. `check_emulator.py` and `check_cql_cartpole.py` had no argument
+   parsing: `--help` executed a full emulator episode / a full training
+   run. Both now parse arguments first and `--help` is nonexecuting.
+3. `check_emulator.py` asserted a 4.0 s episode wall-clock budget (an
+   Apple M1 target) and exited nonzero on this laptop (4.91 s) despite a
+   clean episode. The benchmark is now opt-in
+   (`--benchmark [--benchmark-seconds N]`); elapsed time is always
+   reported, never asserted by default.
+4. Trace provenance: `env/traces.py` silently returned synthetic series
+   when the processed parquets were missing or unwindowable. `reset()`
+   now records per-underlay `trace_provenance` ("real"/"synthetic") and
+   surfaces it with `trace_window_start` in every `info` dict;
+   `SDWanConfig.allow_synthetic_traces=False` refuses the fallback with a
+   named error; `test_sla_decomposition.py` requires real inputs;
+   `tests/test_trace_provenance.py` pins labelling and refusal; the
+   README documents the `data/raw` + `data/processed` symlink dependency
+   for fresh clones/worktrees.
+
+### Incident record (2026-11-18)
+
+- 04:05 IST: while probing entrypoints,
+  `python scripts/check_cql_cartpole.py --help` executed a 5-epoch CQL
+  CartPole training (the script ignored `--help`) and wrote
+  `d3rlpy_logs/` into the worktree. The directory was deleted; no other
+  writes occurred and there is no scientific consequence. Item 2 fixes
+  the defect class.
+- ~04:15 IST: the full suite failed
+  `test_sla_decomposition.py::test_decomposition_reproduces_violations_from_raw_transitions`
+  ([11, 1137, 10] vs committed [80, 952, 1]) because the untracked
+  `data/raw` + `data/processed` symlinks had been removed after the
+  previous green run and the emulator silently synthesized traces. The
+  symlinks were recreated (untracked, read-only use of the main
+  checkout's data) and left in place deliberately; the failure mode
+  motivated item 4.
+
+Test state: 147 passed at de9b28b; 150 passed at 4461cbe (142.85 s, one
+known SciPy warning). These are engineering regression tests; they do
+not validate any scientific conclusion, and every acceptance question in
+"Still pending owner decisions" above remains open.

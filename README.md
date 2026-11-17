@@ -40,7 +40,9 @@ after the workload and emulator gates pass.
 - `paper/` — manuscript and notes
 - `configs/` — Hydra configuration files
 - `docs/` — environment and methodology documentation
-- `scripts/` — trace collection and preprocessing scripts
+- `scripts/` — experiment entrypoints (baseline/offline training,
+  emulator and offline-RL checks, dataset generation and audit) and
+  trace collection/preprocessing utilities
 
 ## Setup
 
