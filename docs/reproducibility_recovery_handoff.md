@@ -69,3 +69,37 @@ The complete existing suite requires the processed traces for its fixed-count in
 ## Remaining limitations
 
 No full training, new cross-engine sweep, deployment test, paper or slide completion was attempted. Public-source licensing and redistribution decisions remain separate from local test success. The short collected broadband input and source-specific missing measurements need coverage/semantics review. A running tunnel proves access, not unattended persistence through laptop sleep or reboot.
+
+## Final infrastructure checkpoint
+
+After the comparator-only repair and 28 new CLI regression cases, the complete suite passed **125 tests with one existing SciPy KS warning in 114.13 seconds**. The earlier 97-test result remains the first checkpoint, not the final count. Comparison functions and default output path were independently AST-compared to the base revision and are unchanged. The original checkout remains clean on main; all changes are local to the same recovery branch. No scientific acceptance record or final datasets were created.
+
+## Comparator CLI modes and limits
+
+The existing `scripts/cross_engine_compare.py` is a report tool by default, not a whole-round acceptance gate. Existing repository callers were inspected: tests import its statistical functions and documentation names the script; no repository automation invokes its CLI. The default report behavior is preserved for valid paired inputs, including exit 0 when some comparisons reject. The CLI now labels that mode explicitly.
+
+Use `--check` when a shell pipeline needs failure on any rejected comparison in the supplied paired tables:
+
+```sh
+python scripts/cross_engine_compare.py \
+  --emulator /path/to/emulator.csv --mininet /path/to/mininet.csv \
+  --thresholds analysis/cross_engine_thresholds.csv \
+  --out /path/to/comparison.csv --check
+```
+
+Exit codes: 0 for a completed report in default mode, or all supplied comparisons accepted in `--check` mode; 1 for rejected comparisons in `--check` mode; 2 for invalid input or an output I/O failure. An invalid input does not write a new partial report. The statistical functions, current thresholds and existing result columns are unchanged. Before computing, the CLI checks required columns, nonempty tables/identifiers, finite numeric values, symmetric case/metric pairs, and finite nonnegative unique threshold bands for every supplied metric. Extra unrelated threshold metrics remain permitted.
+
+`--check` does not verify the full expected manifest, five-replicate adequacy, matched configuration, trace provenance or reviewer authority. Passing one supplied case does not mean all four required cases ran. It never writes an acceptance record.
+
+### Existing scientific-workflow gaps remain
+
+Read-only fixture diagnostics at the base revision found:
+
+- The four-case JSON is a case manifest, not a scenario accepted directly by `testbed.scenario.load_scenario`; direct loading fails because its `paths` field is absent. Executable scenario mapping remains work to review, not silently invented here.
+- The manifest requests `queue_delay_ms`, `throughput_mbps`, `delay_median_ms` and `jitter_mean_ms`, but current threshold bands cover only `interruption_s`, `loss_frac` and `reordering_frac`.
+- The acceptance-file helper requires nonempty fields but does not independently bind their values to actual revisions, inputs or case coverage. A helper returning true is not a scientific review or authorization.
+- The threshold code uses half-range while describing maximum deviation from the median. For skewed replicates `[0,0,0,0,10]`, the latter is 10 but the implemented half-range is 5. This mathematical-method issue needs review; no formula or bands were changed by the CLI repair.
+- Recomputing bands from both committed calibration summary files exactly reproduces the committed numeric bands (48 included cells). Documentation saying that recomputation is pending is stale. The per-path summary records 24 cells and 119 observed runs, not proof that all 120 planned runs completed.
+- The matched-mode queue-byte override and tests already exist despite a stale plan saying otherwise.
+
+These diagnostics use controlled fixtures, not new measured cross-engine results. They must not be copied into an acceptance file as if they were measurements.
