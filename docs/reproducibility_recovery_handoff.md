@@ -11,21 +11,35 @@
   142.85 s (measured at 4461cbe; later commits changed documentation only).
   The 86-test and 97-test figures below are historical checkpoints,
   not current state.
-- Exact reproduction commands (real-data mode, required for the
-  trace-dependent tests):
+- Re-run in the existing worktree (verified this session):
   ```bash
-  uv venv --python 3.11 && source .venv/bin/activate
-  uv pip install torch --index-url https://download.pytorch.org/whl/cpu
-  uv pip install -r requirements.txt
-  ln -s /path/to/main-checkout/data/raw data/raw
-  ln -s /path/to/main-checkout/data/processed data/processed
-  python -m pytest -q
+  cd "/home/sxtr/Projects/Major Project-instinct-recovery"
+  "/home/sxtr/Projects/Major Project/.venv/bin/python" -m pytest -q
   ```
-  Without the data links the suite runs in synthetic-fallback mode:
+  The worktree reuses the main checkout's virtualenv; the `data/raw`
+  and `data/processed` symlinks already exist and are intentionally
+  retained. Verified: 150 passed at 4461cbe (later commits are
+  documentation/comment-only).
+- Fresh-clone setup (documented in README/Setup, NOT retested this
+  session): `uv` venv creation, requirements install, then the two
+  data symlinks, then `python -m pytest -q`. The suite was not run
+  from a truly fresh environment in this round, so the fresh-clone
+  path is expected-but-unverified, not an exact verified reproduction.
+- Without the data links the suite runs in synthetic-fallback mode:
   the SLA-decomposition verification now fails loudly with a named
   error (`allow_synthetic_traces=False`) instead of comparing
   meaningless counts, and the provenance tests skip with an explicit
   reason.
+- Evidence availability differs by layer. Committed (in git, hashed):
+  the per-run raw CSVs (`data/switching_calibration.csv` sha256
+  bdf331a8..., `_v2.csv` d7ee403c...), the repeatability JSONs
+  (including per-repetition values), and the derived thresholds CSV.
+  Local-only (untracked `testbed/outputs/`, not in git): per-run
+  `metrics.json` (266 files), per-packet `sender.csv`/`receiver.csv`
+  and `traffic.pcap` for all 240 calibration runs of both rounds.
+  The candidate-statistic comparison of 2026-11-18 used only the
+  committed CSVs; the local per-run metrics corroborate (e00-r00
+  interruption_s=1.8579 in both).
 - Legacy D1-D3 parse check (2026-11-18): the 216 legacy parquet files
   parse individually, but `offline.learner.load_transitions` and
   `build_mdp_dataset` refuse them by design (`dataset has no
@@ -229,7 +243,7 @@ static path delay) is computable from the committed raw CSVs, and the
 current runner retains per-packet sender/receiver CSVs (verified in the
 2026-11-18 smoke output) - but the committed calibration rounds retain
 only metrics.json and qdisc snapshots per run, so per-packet
-decomposition is possible only for future runs. The proxy's semantics
+decomposition was believed possible only for future runs; that was wrong: all 240 local calibration run dirs (both rounds) retain sender.csv/receiver.csv per-packet logs and traffic.pcap, so decomposition is possible for existing runs. Caveats for that analysis: timestamps are host time.monotonic() (single host, namespaces share the clock); matching is a sequence inner-join with last-wins on duplicates; lost packets are excluded from delay statistics; sender.csv's received_at column is an echo of sent_at (only receiver.csv received_at is real); and the near-empty occupancy bucket is a candidate reference (low pre-switch qdisc backlog), not a proven empty-queue baseline. The proxy's semantics
 differ from the emulator's occupancy/service-rate queue delay and it
 includes serialization and host-scheduling overhead (1400 B at the
 6 Mbps floor is ~1.87 ms of serialization), so it needs an empty-queue
@@ -242,7 +256,15 @@ statistic choice, are owner decisions.
 1. Band statistic: half-range vs true maximum deviation from the cell
    median (the mislabel means the documented intent is ambiguous).
    Changing the statistic changes the acceptance criterion and needs an
-   explicit recorded owner decision - no silent fallback.
+   explicit recorded owner decision - no silent fallback. Evidence
+   update 2026-11-18: the committed repeatability JSONs store
+   per-repetition values, so both statistics are computable from
+   committed hashed inputs; an uncommitted comparison artifact
+   (/home/sxtr/band_stat_compare_v2.json, script attached to the same
+   report) reproduces the committed bands bit-exactly and tabulates
+   both candidates with the e00-r00 outlier in and out. The committed
+   bands embed e00-r00, whose ruling is still open, so that ruling
+   changes the band values.
 2. Acceptance/installation of candidate bands for the three metrics.
 3. `queue_delay_ms`: whether the residual-delay proxy is acceptable
    after empty-queue baseline validation, given its different semantics
