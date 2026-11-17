@@ -136,6 +136,25 @@ tests cover the committed manifest's current gaps, a runner-shaped
 synthetic exit-0 path, unreadable input and a band-column-free
 thresholds CSV.
 
+### Acceptance-artefact revision binding enforced (engineering only)
+
+`validation_is_accepted` now enforces its documented exact-code-revision
+contract: the recorded `code_revision` must be a hexadecimal commit
+object name (full or unambiguous abbreviation; tags, branches, `HEAD`
+and revspecs are rejected before git is invoked, and the recorded
+string must be a genuine prefix of the resolved id so an all-hex tag
+cannot impersonate a different commit), resolved with
+`git rev-parse --verify --quiet <recorded>^{commit}` at the explicit
+repository root, and equal to HEAD at gate time. The tracked working
+tree must be clean (untracked files such as data/ do not count). Every
+failure mode fails closed. This is mechanical precondition enforcement,
+not scientific acceptance: config_fingerprints contents,
+trace_set_sha256 contents, case coverage and reviewer authority remain
+unverified, as does untracked importable code. Tests use both mocks and
+real temporary git repositories (moving-ref bypass, hex-tag
+impersonation, dirty checkout, wrong cwd, immutability across a
+docs-only commit). No acceptance artefact was created.
+
 ### Mininet smoke execution check (one approved run)
 
 With the owner's go-ahead, the committed smoke scenario was run once
@@ -163,8 +182,17 @@ The committed raw calibration runs already record `delay_median_ms`,
 never carried them through. Candidate bands for the three measurable
 metrics were derived from the committed raw runs under both statistics
 and stored outside the repository as diagnostics (not committed, not
-installed in any gate, explicitly UNREVIEWED). `queue_delay_ms` is
-recorded nowhere and needs a measurement definition first. Whether
+installed in any gate, explicitly UNREVIEWED). `queue_delay_ms` is not recorded directly. A
+run-level residual-delay proxy (`delay_median_ms` minus the configured
+static path delay) is computable from the committed raw CSVs, and the
+current runner retains per-packet sender/receiver CSVs (verified in the
+2026-11-18 smoke output) - but the committed calibration rounds retain
+only metrics.json and qdisc snapshots per run, so per-packet
+decomposition is possible only for future runs. The proxy's semantics
+differ from the emulator's occupancy/service-rate queue delay and it
+includes serialization and host-scheduling overhead (1400 B at the
+6 Mbps floor is ~1.87 ms of serialization), so it needs an empty-queue
+baseline validation before use as a matched metric. Whether
 calibration-derived bands transfer to case conditions, and the
 statistic choice, are owner decisions.
 
@@ -172,10 +200,16 @@ statistic choice, are owner decisions.
 
 1. Band statistic: half-range vs true maximum deviation from the cell
    median (the mislabel means the documented intent is ambiguous).
+   Changing the statistic changes the acceptance criterion and needs an
+   explicit recorded owner decision - no silent fallback.
 2. Acceptance/installation of candidate bands for the three metrics.
-3. `queue_delay_ms` measurement definition.
-4. `capacity_floor_frac` semantics and manifest-to-scenario mapping.
-5. Acceptance-artefact revision binding: what the recorded
-   `code_revision` must match, and dirty-worktree treatment (proposal
-   reported separately; no gate behavior changed).
-6. Final review and acceptance of any validation round.
+3. `queue_delay_ms`: whether the residual-delay proxy is acceptable
+   after empty-queue baseline validation, given its different semantics
+   from the emulator's occupancy/service-rate delay.
+4. `capacity_floor_frac` semantics are now pinned by evidence: the
+   emulator floors trace capacity at 0.2x nominal (env/traces.py:66,
+   pinned by test_queue_delay_ceiling_from_capacity_floor), matching
+   the manifest's 0.2. Remaining choices: how Mininet realizes sagged
+   capacity (static TC at floor rate vs time-varying), which emulator
+   trace windows cases use, and packet-size transfer effects.
+5. Final review and acceptance of any validation round.
