@@ -1,5 +1,46 @@
 # Reproducibility recovery handoff
 
+## Current state (2026-11-18 ~04:50 IST; supersedes checkpoint figures below)
+
+- Branch `instinct/reproducibility-diagnostics` tip
+  (worktree `/home/sxtr/Projects/Major Project-instinct-recovery`),
+  clean except two intentionally retained untracked symlinks,
+  `data/raw` and `data/processed`, pointing at the main checkout's
+  data. Nothing pushed or merged.
+- Full suite: **150 passed**, one known SciPy KS asymptotic warning,
+  142.85 s (measured at 4461cbe; later commits changed documentation only).
+  The 86-test and 97-test figures below are historical checkpoints,
+  not current state.
+- Exact reproduction commands (real-data mode, required for the
+  trace-dependent tests):
+  ```bash
+  uv venv --python 3.11 && source .venv/bin/activate
+  uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+  uv pip install -r requirements.txt
+  ln -s /path/to/main-checkout/data/raw data/raw
+  ln -s /path/to/main-checkout/data/processed data/processed
+  python -m pytest -q
+  ```
+  Without the data links the suite runs in synthetic-fallback mode:
+  the SLA-decomposition verification now fails loudly with a named
+  error (`allow_synthetic_traces=False`) instead of comparing
+  meaningless counts, and the provenance tests skip with an explicit
+  reason.
+- Legacy D1-D3 parse check (2026-11-18): the 216 legacy parquet files
+  parse individually, but `offline.learner.load_transitions` and
+  `build_mdp_dataset` refuse them by design (`dataset has no
+  behavior_action_prob; regenerate ... before WIS`). This is a
+  mechanical parsing result only; it says nothing about RL/OPE
+  eligibility, which remains gated on regeneration after cross-engine
+  validation.
+- Open scientific gates (unchanged owner decisions; engineering test
+  counts do not bear on them): band statistic choice; candidate band
+  acceptance; `queue_delay_ms` residual-proxy acceptability after
+  empty-queue baseline validation; Mininet sag realization, trace
+  windows and packet-size transfer; the `e00-r00` interruption-outlier
+  ruling; team-collected broadband redistribution approval;
+  cross-engine validation; final review.
+
 ## Scope and safety
 
 Work is isolated on `instinct/reproducibility-diagnostics` in a separate worktree. The original checkout remains on `main`. Nothing has been pushed or merged. Existing datasets and checkpoints have not been overwritten. This handoff reports developer diagnostics, not completed research, deployment acceptance or publication readiness.
@@ -12,15 +53,15 @@ Two regression tests invoke the absolute script paths with `--help` from an unre
 
 A new stdlib-only `scripts/repro_preflight.py` checks the expected source files before a run. Its default path is anchored to the repository, not the shell directory; `--data-root` overrides it. `--json` emits explicit version/file-status booleans and `--hash` computes chunked SHA256. Its output deliberately says `check_mode=file_presence_only` and `scientific_validity=not_evaluated`. Fake bytes can pass presence checks: this utility does not validate parquet, provenance, licensing or scientific quality. Nine regression cases cover missing/empty/directory inputs, hash-read failure, Python-version mismatch, stable default paths, relative overrides and CLI usage. Independent review caught and corrected a hash-error false-success bug before acceptance.
 
-## Recovery-worktree verification
+## Recovery-worktree verification (historical checkpoint, mid-recovery)
 
-After the support fixes and new tests, the full suite passed **97 tests with one SciPy KS asymptotic warning in 51.32 seconds**. The targeted 11-case support suite also passed. The actual local presence/hash preflight returned success for all three expected processed inputs under Python 3.11.15. These input hashes were computed on the laptop; no raw traffic rows were included in model prompts or the handoff. Temporary data symlinks used to run the worktree suite are removed before handoff. Use `--data-root` with the original processed-data directory for the standalone preflight after that removal.
+After the support fixes and new tests, the full suite passed **97 tests with one SciPy KS asymptotic warning in 51.32 seconds**. The targeted 11-case support suite also passed. The actual local presence/hash preflight returned success for all three expected processed inputs under Python 3.11.15. These input hashes were computed on the laptop; no raw traffic rows were included in model prompts or the handoff. Superseded: the data symlinks were later recreated and are intentionally retained (see Current state). Use `--data-root` with the original processed-data directory for the standalone preflight when running without them.
 
-## Verified baseline
+## Verified baseline (historical checkpoint at base commit)
 
 At base commit `c57e91b17ac60345ff0c9bcd616aceba7b1de624`, the existing suite passed all 86 tests with local traces. One SciPy KS-test warning switches its exact calculation to an asymptotic method. Python was 3.11.15. This is a test-suite result, not proof that the simulator is scientifically valid.
 
-The fixed-count SLA-decomposition test fails in a fresh clone without ignored trace data, but passes with the laptop's processed traces at the same commit. Missing input files trigger a synthetic fallback. This is a trace-dependent integration test, not a self-contained unit test. Do not change its expected counts simply to make a data-less clone pass.
+The fixed-count SLA-decomposition test fails in a fresh clone without ignored trace data, but passes with the laptop's processed traces at the same commit. At that time, missing input files triggered a silent synthetic fallback; since 4461cbe this verification sets `allow_synthetic_traces=False` and fails loudly instead. This is a trace-dependent integration test, not a self-contained unit test. Do not change its expected counts simply to make a data-less clone pass.
 
 ## Data layers and evidence
 
@@ -248,9 +289,11 @@ scientific behavior, threshold or acceptance question was changed.
 - 04:05 IST: while probing entrypoints,
   `python scripts/check_cql_cartpole.py --help` executed a 5-epoch CQL
   CartPole training (the script ignored `--help`) and wrote
-  `d3rlpy_logs/` into the worktree. The directory was deleted; no other
-  writes occurred and there is no scientific consequence. Item 2 fixes
-  the defect class.
+  `d3rlpy_logs/` into the worktree. The directory was deleted and
+  `git status` was verified clean afterward (no other writes detected
+  in the worktree). The run trained a toy CartPole policy unrelated to
+  project data; its output is not referenced by any result. Item 2
+  fixes the defect class.
 - ~04:15 IST: the full suite failed
   `test_sla_decomposition.py::test_decomposition_reproduces_violations_from_raw_transitions`
   ([11, 1137, 10] vs committed [80, 952, 1]) because the untracked
