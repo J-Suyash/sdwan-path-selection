@@ -1,7 +1,8 @@
 """Guard the standalone CLI import bootstrap in scripts/ (direct entrypoints).
 
 Runs each script with only ``--help`` from an unrelated cwd with PYTHONPATH
-removed; no data generated, no credentials imported.
+removed; no data generated, no credentials imported. ``--help`` must be
+nonexecuting: it prints usage and exits before any emulation or training.
 """
 
 import os
@@ -12,7 +13,15 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ("audit_offline_dataset.py", "generate_datasets.py")
+SCRIPTS = (
+    "audit_offline_dataset.py",
+    "generate_datasets.py",
+    "run_baseline.py",
+    "train_offline.py",
+    "check_emulator.py",
+    "offline_sweep.py",
+    "check_cql_cartpole.py",
+)
 
 
 @pytest.mark.parametrize("script", SCRIPTS)

@@ -14,6 +14,15 @@ import time
 import pandas as pd
 from d3rlpy.algos import DiscreteBCConfig, DiscreteCQLConfig
 
+import sys
+from pathlib import Path
+
+# Make the repo root importable so this script can be invoked directly
+# (e.g. by absolute path) from any working directory.
+REPO_ROOT = str(Path(__file__).resolve().parents[1])
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
 from env import SDWanConfig
 from offline.learner import build_mdp_dataset, evaluate_actor, greedy_wrapper
 

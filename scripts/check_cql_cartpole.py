@@ -5,6 +5,8 @@ of the proposal (Section 14). Keep the budget tiny; we only need to
 verify that data loading, training and evaluation work end to end.
 """
 
+import argparse
+
 from d3rlpy.datasets import get_cartpole
 from d3rlpy.algos import DiscreteCQLConfig
 from d3rlpy.metrics import EnvironmentEvaluator
@@ -13,6 +15,8 @@ import gymnasium
 
 
 def main() -> None:
+    argparse.ArgumentParser(description=__doc__).parse_args()
+
     # get_cartpole() returns a legacy gym (0.26) environment that is
     # incompatible with NumPy 2, so we evaluate with a Gymnasium env
     # instead. The dataset itself (4-dim observations, 2 actions) is
