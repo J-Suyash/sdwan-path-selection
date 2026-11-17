@@ -95,6 +95,11 @@ class SDWanConfig:
 
     # Trace handling
     data_root: str = "data/processed"
+    # Synthetic trace fallback stays on by default so demos and unit
+    # tests run without the processed parquets. Set False to refuse any
+    # underlay whose real trace cannot be loaded or windowed, so a
+    # validation run cannot silently execute on synthetic inputs.
+    allow_synthetic_traces: bool = True
     underlay_source: dict[str, str] = field(
         default_factory=lambda: {
             "bb": "collected",

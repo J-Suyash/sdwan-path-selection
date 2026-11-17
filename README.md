@@ -53,6 +53,20 @@ uv pip install torch --index-url https://download.pytorch.org/whl/cpu
 uv pip install -r requirements.txt
 ```
 
+The full test suite expects the processed underlay traces at
+`data/processed/` (kept out of git). In a fresh clone or worktree, link
+them from a checkout that holds the data:
+
+```bash
+ln -s /path/to/main-checkout/data/raw data/raw
+ln -s /path/to/main-checkout/data/processed data/processed
+```
+
+Without them the emulator falls back to labelled synthetic traces (see
+`SDWanConfig.allow_synthetic_traces`); tests that verify real-trace
+artefacts refuse the fallback or skip with an explicit reason instead of
+passing on synthetic inputs.
+
 OmniSafe is intentionally deferred: it currently forces a pandas
 downgrade. Install it only when Phase 2 Lagrangian baselines need it, or
 use the custom-PyTorch fallback from Section 12 of the proposal.

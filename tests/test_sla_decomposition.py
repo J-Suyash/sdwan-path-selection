@@ -19,6 +19,9 @@ from scripts.decompose_sla_violations import diagnose
 def _config() -> SDWanConfig:
     cfg = SDWanConfig(primary_profile="medium")
     cfg.switching_calibration_path = "data/switching_calibration.csv"
+    # This verification replays a committed artefact; a synthetic trace
+    # fallback must fail loudly here, not compare meaningless counts.
+    cfg.allow_synthetic_traces = False
     return cfg
 
 

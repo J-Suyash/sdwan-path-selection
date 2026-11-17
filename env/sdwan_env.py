@@ -45,6 +45,7 @@ class SDWanEnv(gymnasium.Env):
 
         self.series = {}
         self.trace_window_start = {}
+        self.trace_provenance = {}
         for underlay in self.cfg.underlays:
             source = self.cfg.underlay_source[underlay]
             try:
@@ -59,9 +60,22 @@ class SDWanEnv(gymnasium.Env):
                 self.cfg.cap_mbps[underlay],
                 self.cfg.decision_interval_s,
             )
-            self.trace_window_start[underlay] = str(
-                self.series[underlay].get("window_start") or "synthetic"
-            )
+            window_start = self.series[underlay].get("window_start")
+            provenance = "real" if window_start is not None else "synthetic"
+            if provenance == "synthetic" and not self.cfg.allow_synthetic_traces:
+                reason = (
+                    "trace file missing or unreadable"
+                    if df is None
+                    else "no usable trace window for the episode length"
+                )
+                raise RuntimeError(
+                    f"underlay {underlay!r} (source {source!r}, expected at "
+                    f"{self.cfg.data_root}/{source}.parquet): {reason}; "
+                    "refusing synthetic fallback because "
+                    "allow_synthetic_traces=False"
+                )
+            self.trace_provenance[underlay] = provenance
+            self.trace_window_start[underlay] = str(window_start or "synthetic")
 
         self.history = {
             u: deque(maxlen=self.cfg.history_steps) for u in self.cfg.underlays
@@ -335,6 +349,8 @@ class SDWanEnv(gymnasium.Env):
             "violations": dict(self.violations),
             "assignment": dict(self.assignment),
             "workload_profile": self.cfg.primary_profile,
+            "trace_provenance": dict(self.trace_provenance),
+            "trace_window_start": dict(self.trace_window_start),
             "active_users": getattr(self.workload_snapshot, "active_users", 0),
             "active_sessions": lifecycle["sessions"]["active"],
             "active_flows": lifecycle["flows"]["active"],
