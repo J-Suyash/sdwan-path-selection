@@ -14,6 +14,8 @@ runs ~5,000x real time, so 200 simulated hours take a few wall minutes.
 import argparse
 import json
 import os
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -170,6 +172,83 @@ REQUIRED_ACCEPTANCE_FIELDS = (
     "validation_cases",
 )
 
+# Hexadecimal commit object names only: full or abbreviated hashes.
+_HEX_OBJECT_RE = re.compile(r"[0-9a-fA-F]{4,64}")
+_FULL_HEX_RE = re.compile(r"[0-9a-f]{40,64}")
+
+
+def _git_commit_id(repo_root: Path, *args: str) -> str | None:
+    """Run a git command expected to print one commit id; None on any failure.
+
+    Never raises: missing git, non-zero exit, timeouts and unexpected
+    output all yield None so callers fail closed. No shell is involved
+    and callers pass only hex-validated or fixed arguments.
+    """
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_root), *args],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    resolved = result.stdout.strip()
+    if not _FULL_HEX_RE.fullmatch(resolved):
+        return None
+    return resolved
+
+
+def _current_head_revision(repo_root: Path) -> str | None:
+    """Full commit id of HEAD in repo_root, or None when unavailable."""
+
+    return _git_commit_id(repo_root, "rev-parse", "HEAD")
+
+
+def _resolve_recorded_revision(repo_root: Path, recorded) -> str | None:
+    """Resolve a recorded hex commit id (full or abbreviated) to its full id.
+
+    Only hexadecimal object names reach git: tags, branch names,
+    ``HEAD``, revspecs such as ``main~2`` or ``v1^{}`` and option-like
+    strings are rejected first, so a mutable or symbolic ref can never
+    stand in for an immutable commit identity (a record saying "HEAD"
+    would resolve to whatever is current and defeat the binding).
+    ``git rev-parse --verify --quiet <recorded>^{commit}`` fails closed
+    on ambiguous abbreviations, unknown objects and non-commit objects.
+    The recorded string must be a genuine prefix of the resolved id, so
+    an all-hex tag or branch name cannot impersonate an abbreviation of
+    a different commit.
+    """
+
+    if not isinstance(recorded, str) or not _HEX_OBJECT_RE.fullmatch(recorded):
+        return None
+    resolved = _git_commit_id(
+        repo_root, "rev-parse", "--verify", "--quiet", recorded + "^{commit}"
+    )
+    if resolved is None or not resolved.startswith(recorded.lower()):
+        return None
+    return resolved
+
+
+def _tracked_tree_is_clean(repo_root: Path) -> bool | None:
+    """True when no tracked working-tree changes exist; None on git failure.
+
+    Untracked files (including data/) never affect the result.
+    """
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_root), "status", "--porcelain",
+             "--untracked-files=no"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() == ""
+
 
 def validation_is_accepted(acceptance_path: str) -> bool:
     """Cross-engine acceptance gate (owner decision 9 / spec section 6).
@@ -178,6 +257,24 @@ def validation_is_accepted(acceptance_path: str) -> bool:
     artefact bound to the exact code revision, environment configuration
     fingerprints, trace-set hashes and validation run IDs it covers. A
     file that merely says ``accepted: true`` is not sufficient.
+
+    Revision binding actually verified (engineering enforcement of the
+    documented exact-code-revision contract, not scientific acceptance):
+    the recorded ``code_revision`` must be a hexadecimal commit object
+    name (full or unambiguous abbreviated hash; never a tag, branch,
+    ``HEAD`` or revspec) that resolves to the commit checked out at gate
+    time, and the tracked working tree must be clean. Because the
+    artefact lives in untracked data/, writing it never moves HEAD; any
+    later commit - including docs-only commits - intentionally
+    invalidates the artefact until re-validation. When git is
+    unavailable, the revision is unresolvable, or the tree state cannot
+    be determined, the gate fails closed.
+
+    Still NOT verified: uncommitted changes to untracked code that
+    Python could import, ``config_fingerprints`` contents,
+    ``trace_set_sha256`` contents, ``validation_cases`` coverage, and
+    reviewer authority. A true result is a mechanical precondition
+    check, not a scientific review or authorization.
     """
 
     path = Path(acceptance_path)
@@ -196,6 +293,15 @@ def validation_is_accepted(acceptance_path: str) -> bool:
                 return False
         elif not value:  # non-empty run id, revision, reviewer, lists
             return False
+    repo_root = Path(__file__).resolve().parents[1]
+    head = _current_head_revision(repo_root)
+    if head is None:
+        return False
+    resolved = _resolve_recorded_revision(repo_root, payload.get("code_revision"))
+    if resolved is None or resolved != head:
+        return False
+    if _tracked_tree_is_clean(repo_root) is not True:
+        return False
     return True
 
 

@@ -35,7 +35,11 @@ EFFECT_SIZES = (
 )
 
 REQUIRED_COLUMNS = ("case", "metric", "value")
-THRESHOLD_COLUMNS = ("metric", "max_dev_from_median_q90")
+# Band column preference: the honest name first, the legacy misnamed
+# `max_dev_from_median_q90` (used by the committed thresholds CSV) as a
+# backward-compatible fallback. Both name the same per-cell spread value.
+BAND_COLUMN_CANDIDATES = ("cell_half_range_q90", "max_dev_from_median_q90")
+THRESHOLD_COLUMNS = ("metric",)
 
 
 class InputError(Exception):
@@ -138,6 +142,17 @@ def _load_table(path: Path, label: str) -> pd.DataFrame:
     return table
 
 
+def _resolve_band_column(table: "pd.DataFrame", path: Path) -> str:
+    """Pick the band column: honest name preferred, legacy name accepted."""
+
+    for candidate in BAND_COLUMN_CANDIDATES:
+        if candidate in table.columns:
+            return candidate
+    raise InputError(
+        f"thresholds table {path} is missing required columns: "
+        f"cell_half_range_q90 (or legacy max_dev_from_median_q90)")
+
+
 def _load_thresholds(path: Path) -> dict:
     """Read and validate the per-metric deviation bands."""
 
@@ -158,20 +173,21 @@ def _load_thresholds(path: Path) -> dict:
     if duplicated:
         raise InputError(
             f"thresholds table {path}: duplicate metric names: {duplicated[:5]}")
+    band_column = _resolve_band_column(table, path)
     try:
-        bands = pd.to_numeric(table["max_dev_from_median_q90"], errors="raise")
+        bands = pd.to_numeric(table[band_column], errors="raise")
     except (TypeError, ValueError):
         raise InputError(
-            f"thresholds table {path}: 'max_dev_from_median_q90' column "
+            f"thresholds table {path}: '{band_column}' column "
             "contains non-numeric entries") from None
     bands = bands.to_numpy(dtype=float)
     if not np.isfinite(bands).all():
         raise InputError(
-            f"thresholds table {path}: 'max_dev_from_median_q90' contains "
+            f"thresholds table {path}: '{band_column}' contains "
             "non-finite numbers")
     if (bands < 0).any():
         raise InputError(
-            f"thresholds table {path}: 'max_dev_from_median_q90' contains "
+            f"thresholds table {path}: '{band_column}' contains "
             "negative bands")
     return dict(zip(metric.tolist(), map(float, bands)))
 

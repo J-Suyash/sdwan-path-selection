@@ -3,9 +3,21 @@
 
 Rule: the acceptable emulator/Mininet difference for a metric is bounded
 by the *within-engine* reproducibility of the same measurement. We take
-the calibration sweeps' replicate deviations (per cell: maximum absolute
-deviation of a replicate from the cell median) and use their q90 across
+the calibration sweeps' per-cell replicate spread and use its q90 across
 cells as the band. No fixed percentage thresholds are invented.
+
+Statistic naming (corrected): the repeatability JSON stores mean/min/max
+per cell, not raw replicates, so the per-cell spread is reconstructed as
+the *half-range* ``(max - min) / 2``. The half-range equals the maximum
+deviation from the midrange, but it is NOT the maximum deviation from the
+median: for skewed replicates such as [0, 0, 0, 0, 10] the median is 0
+and the true maximum deviation from the median is 10, while the
+half-range is 5. The half-range can therefore understate the intended
+quantity by up to a factor of two. Whether the half-range or the true
+maximum deviation from the cell median is the appropriate
+reproducibility statistic is a research decision for the owner; this
+script only reports the half-range it has always computed, now under an
+honest name.
 
     uv run python scripts/derive_cross_engine_thresholds.py \
         --repeatability testbed/outputs/cal_v1_full/repeatability.json \
@@ -28,12 +40,13 @@ METRICS = {
 
 
 def per_cell_max_deviation(rows: list[dict], columns: list[str]) -> dict[str, list[float]]:
-    """Max |replicate - cell median| per cell per metric.
+    """Per-cell half-range (max - min) / 2 per cell per metric.
 
     The repeatability JSON stores mean/min/max per cell, not raw
-    replicates, so the deviation bound is reconstructed conservatively:
-    (max - min) is an upper bound on 2x the max deviation from the
-    median; we report (max - min) / 2 per cell.
+    replicates, so the spread is reconstructed from the stored extremes.
+    This is the half-range, not the maximum deviation from the median;
+    see the module docstring for the skewed-replicate caveat. The name of
+    this function is retained for import compatibility.
     """
 
     deviations: dict[str, list[float]] = {name: [] for name in METRICS}
@@ -51,7 +64,7 @@ def per_cell_max_deviation(rows: list[dict], columns: list[str]) -> dict[str, li
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repeatability", type=Path, nargs="+", required=True)
+    parser.add_argument("--repeatability", type=Path, action="append", required=True)
     parser.add_argument("--out", type=Path, default=Path("analysis/cross_engine_thresholds.csv"))
     args = parser.parse_args()
 
@@ -70,10 +83,10 @@ def main() -> None:
                 "metric": metric,
                 "cells_used": cells,
                 "replicates_per_cell_min": int(min(r.get("n_runs", 0) for r in rows if r.get("quality") != "insufficient")),
-                "max_dev_from_median_median": float(np.median(arr)),
-                "max_dev_from_median_q90": float(np.quantile(arr, 0.9)),
-                "max_dev_from_median_q95": float(np.quantile(arr, 0.95)),
-                "band_rule": "accept emulator/Mininet |difference| <= q90 of within-engine per-cell max deviation",
+                "cell_half_range_median": float(np.median(arr)),
+                "cell_half_range_q90": float(np.quantile(arr, 0.9)),
+                "cell_half_range_q95": float(np.quantile(arr, 0.95)),
+                "band_rule": "accept emulator/Mininet |difference| <= q90 of within-engine per-cell half-range (max-min)/2",
             }
         )
     frame = pd.DataFrame(out_rows)

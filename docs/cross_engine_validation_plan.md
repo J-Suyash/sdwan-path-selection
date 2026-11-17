@@ -39,28 +39,51 @@ Regression-tested: identical medians with different tails are flagged
 ## Acceptance thresholds (derived, not assumed)
 
 `scripts/derive_cross_engine_thresholds.py` computes the within-engine
-reproducibility band from the calibration sweeps' replicate deviations
-(per cell: max |replicate − cell median| / 2, aggregated as q90 across
-cells). Current bands from `cal_v1_full` (24 cells, ≥4 replicates):
+reproducibility band from the calibration sweeps' per-cell replicate
+spread, reconstructed as the half-range `(max − min) / 2` per cell
+(the repeatability summaries store mean/min/max, not raw replicates),
+aggregated as q90 across cells. The half-range is not the maximum
+deviation from the cell median: for skewed replicates `[0,0,0,0,10]`
+the half-range is 5 while the true maximum deviation from the median
+is 10. Which statistic should bound acceptance is an owner decision;
+the derivation reports the half-range it has always computed under an
+honest name (`cell_half_range_q90`; the legacy mislabel
+`max_dev_from_median_q90` is still accepted for compatibility).
+Committed bands from `cal_v1_full` + `cal_v2_perpath` (48 cells,
+≥4 replicates), exactly reproducible from the two committed
+repeatability summaries:
 
 | Metric | Band (q90, absolute) |
 |---|---|
-| `interruption_s` | 0.0033 s |
-| `loss_frac` | 0.0072 |
-| `reordering_frac` | 0.0026 |
+| `interruption_s` | 0.0087 s |
+| `loss_frac` | 0.0092 |
+| `reordering_frac` | 0.0034 |
+
+No bands exist yet for `delay_median_ms`, `jitter_mean_ms`,
+`throughput_mbps` or `queue_delay_ms`, and the runner records no
+`queue_delay_ms` anywhere. Deriving and accepting those bands is part
+of what remains, not done.
 
 A metric is accepted when both |median difference| and the p95 tail
-deviation fall inside the band. The bands will be recomputed including
-the `cal_v2_perpath` replicates before the comparison is judged.
+deviation fall inside the band. The bands above already include the
+`cal_v2_perpath` replicates (recomputation done, 48 cells).
 
 ## What remains before the gate can be evaluated
 
-1. `cal_v2_perpath` sweep completion (120 runs, in progress) and
-   aggregation under fingerprint `<sha>|per_path_v2`.
-2. Emulator matched-mode runs for the four cases (queue mapping above;
-   requires a matched-mode `SDWanConfig` — not yet implemented).
+1. DONE: `cal_v2_perpath` aggregated under the per-path fingerprint
+   and committed (the per-path summary records 24 cells and 119
+   observed runs).
+2. Emulator matched-mode runs for the four cases (queue mapping above).
+   The matched-mode `SDWanConfig.queue_buffer_bytes` override exists;
+   what remains is the owner-reviewed mapping of the case manifest to
+   executable scenarios (`capacity_floor_frac` semantics, trace
+   segments, scenario construction). `scripts/cross_engine_manifest_check.py`
+   reports the current mechanical gaps and performs no validation.
 3. Mininet runs of the same cases (reuse the v2 runner with the case
-   scenario).
+   scenario). The runner execution path was smoke-verified on
+   2026-11-18 with the committed smoke scenario (single voice switch,
+   output marked raw_unvalidated); the case scenarios themselves still
+   need the owner-reviewed mapping.
 4. Comparison with the recomputed bands; a **failure on
    `interruption_s` is expected and informative**: the emulator draws
    interruptions from the calibrated model rather than reproducing

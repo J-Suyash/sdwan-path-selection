@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -56,13 +57,140 @@ FULL_ACCEPTANCE = {
 }
 
 
+def _bind_revision(monkeypatch, head="f" * 40, clean=True):
+    """Mock the revision-binding helpers for gate-level tests."""
+
+    monkeypatch.setattr(
+        "scripts.generate_datasets._current_head_revision",
+        lambda repo_root: head,
+    )
+    monkeypatch.setattr(
+        "scripts.generate_datasets._resolve_recorded_revision",
+        lambda repo_root, recorded: (
+            head if recorded == FULL_ACCEPTANCE["code_revision"] else None
+        ),
+    )
+    monkeypatch.setattr(
+        "scripts.generate_datasets._tracked_tree_is_clean",
+        lambda repo_root: clean,
+    )
+
+
+def _accepted_payload_file(tmp_path, **overrides):
+    payload = dict(FULL_ACCEPTANCE)
+    payload.update(overrides)
+    target = tmp_path / "acceptance.json"
+    target.write_text(json.dumps(payload))
+    return str(target)
+
+
 def test_validation_gate_accepts_reviewed_provenanced_run(tmp_path, monkeypatch):
     target = tmp_path / "acceptance.json"
     target.write_text(json.dumps(FULL_ACCEPTANCE))
     monkeypatch.setattr(
         "scripts.generate_datasets.ACCEPTANCE_PATH", str(target)
     )
+    _bind_revision(monkeypatch)
     assert validation_is_accepted(str(target)) is True
+
+
+def test_validation_gate_rejects_stale_revision(tmp_path, monkeypatch):
+    """A recorded revision that resolves, but to a different commit than
+    HEAD, fails: any post-validation commit invalidates the artefact."""
+
+    _bind_revision(monkeypatch)
+    monkeypatch.setattr(
+        "scripts.generate_datasets._resolve_recorded_revision",
+        lambda repo_root, recorded: "a" * 40,
+    )
+    assert validation_is_accepted(_accepted_payload_file(tmp_path)) is False
+
+
+def test_recorded_revision_rejects_non_hex_object_names(tmp_path):
+    """Symbolic refs, revspecs, option-like and short strings never reach git."""
+
+    from scripts.generate_datasets import _resolve_recorded_revision
+
+    for bogus in ("HEAD", "main", "v1.0", "2e2e2cd^{commit}", "2e2e2~1",
+                  "--all", "", "ab", "not-a-commit", "2e2e2cd "):
+        assert _resolve_recorded_revision(tmp_path, bogus) is None, bogus
+
+
+def test_validation_gate_fails_closed_without_git(tmp_path, monkeypatch):
+    """Unresolvable HEAD (git unavailable) rejects a complete payload."""
+
+    _bind_revision(monkeypatch, head=None)
+    assert validation_is_accepted(_accepted_payload_file(tmp_path)) is False
+
+
+def test_validation_gate_rejects_dirty_tracked_tree(tmp_path, monkeypatch):
+    """Uncommitted tracked changes are not bound by HEAD equality."""
+
+    _bind_revision(monkeypatch, clean=False)
+    assert validation_is_accepted(_accepted_payload_file(tmp_path)) is False
+
+
+GIT = shutil.which("git")
+requires_git = pytest.mark.skipif(GIT is None, reason="git not available")
+
+
+def _init_repo(path: Path) -> str:
+    subprocess.run([GIT, "init", "-q", str(path)], check=True)
+    subprocess.run([GIT, "-C", str(path), "config", "user.email", "t@example.com"], check=True)
+    subprocess.run([GIT, "-C", str(path), "config", "user.name", "Test"], check=True)
+    (path / "tracked.txt").write_text("one\n")
+    subprocess.run([GIT, "-C", str(path), "add", "tracked.txt"], check=True)
+    subprocess.run([GIT, "-C", str(path), "commit", "-q", "-m", "init"], check=True)
+    return subprocess.run(
+        [GIT, "-C", str(path), "rev-parse", "HEAD"],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+
+
+@requires_git
+def test_revision_binding_against_real_repository(tmp_path, monkeypatch):
+    from scripts import generate_datasets as gd
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    head = _init_repo(repo)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)  # explicit repo root: cwd must not matter
+    assert gd._current_head_revision(repo) == head
+    assert gd._resolve_recorded_revision(repo, head) == head
+    assert gd._resolve_recorded_revision(repo, head[:7]) == head  # abbreviation
+    assert gd._tracked_tree_is_clean(repo) is True
+    # Untracked files (the artefact lives in one) do not dirty the tree.
+    (repo / "data").mkdir()
+    (repo / "data" / "acceptance.json").write_text("{}")
+    assert gd._tracked_tree_is_clean(repo) is True
+    # Symbolic refs never resolve as recorded evidence.
+    assert gd._resolve_recorded_revision(repo, "HEAD") is None
+    # An all-hex tag pointing at HEAD cannot impersonate a hash prefix.
+    subprocess.run([GIT, "-C", str(repo), "tag", "deadbee"], check=True)
+    assert gd._resolve_recorded_revision(repo, "deadbee") is None
+    # A tracked modification fails the cleanliness check.
+    (repo / "tracked.txt").write_text("two\n")
+    assert gd._tracked_tree_is_clean(repo) is False
+
+
+@requires_git
+def test_recorded_revision_binds_immutably_across_commits(tmp_path):
+    """The recorded hex id keeps resolving to the OLD commit after any new
+    commit (docs-only included), so binding fails until re-validation."""
+
+    from scripts import generate_datasets as gd
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    head = _init_repo(repo)
+    (repo / "tracked.txt").write_text("two\n")
+    subprocess.run([GIT, "-C", str(repo), "add", "tracked.txt"], check=True)
+    subprocess.run([GIT, "-C", str(repo), "commit", "-q", "-m", "docs only"], check=True)
+    new_head = gd._current_head_revision(repo)
+    assert new_head is not None and new_head != head
+    assert gd._resolve_recorded_revision(repo, head[:7]) == head
 
 
 @pytest.mark.parametrize(

@@ -103,3 +103,79 @@ Read-only fixture diagnostics at the base revision found:
 - The matched-mode queue-byte override and tests already exist despite a stale plan saying otherwise.
 
 These diagnostics use controlled fixtures, not new measured cross-engine results. They must not be copied into an acceptance file as if they were measurements.
+
+## Follow-through, 2026-11-18 (threshold naming, manifest diagnostic, smoke run)
+
+### Threshold band naming made honest
+
+The derive script's band statistic was implemented as the per-cell
+half-range `(max - min) / 2` but labelled "max deviation from median";
+for skewed replicates the two differ by up to a factor of two. The
+script now emits `cell_half_range_median/q90/q95` with the caveat in
+its docstring, computing exactly the same numbers as before. The
+comparator accepts the honest column first and the legacy column as a
+backward-compatible fallback, with input errors naming both. New
+`tests/test_threshold_labels.py` covers new-name acceptance, legacy
+acceptance, precedence when both exist, the missing-column input error,
+a synthetic half-range pin (min 0 / max 10 -> 5.0, not 10), and a
+regression proving the committed thresholds CSV is bit-exact
+reproducible from the two committed repeatability summaries. Choosing
+the statistic (half-range vs true maximum deviation from the median)
+remains an owner decision; no formula or committed band changed.
+
+### Manifest gap diagnostic
+
+New stdlib-only `scripts/cross_engine_manifest_check.py` reports,
+mechanically, what the case manifest still needs before the runner
+could execute its cases: missing runner-schema sections, per-case
+queue-config coverage, band coverage per requested metric (either band
+column name accepted), and reference-scenario consistency. It performs
+no scientific validation, constructs no scenarios and writes no files;
+exit 1 with gaps, 0 when clean, 2 for invalid inputs. Five regression
+tests cover the committed manifest's current gaps, a runner-shaped
+synthetic exit-0 path, unreadable input and a band-column-free
+thresholds CSV.
+
+### Mininet smoke execution check (one approved run)
+
+With the owner's go-ahead, the committed smoke scenario was run once
+via sudo: conflict precheck (only the user's preexisting `s1` bridge
+existed; it was not touched), one scoped privileged invocation, and
+trap-based cleanup of only this run's resources. The run completed
+(RUNNER_RC=0): output at `testbed/outputs/smoke-20261118-033510/`
+(switch_metrics_raw.csv, run_manifest.json, per-run capture), marked
+raw_unvalidated by the runner itself. This verifies the execution path
+(OVS bridges, namespaces, TC netem, OpenFlow controller, synthetic
+capture) works end-to-end on this laptop; it is not a validation
+measurement. Post-run sweep found no leftover processes, veth links,
+TC qdiscs, namespaces or controller port bindings; the runner's own
+self-cleanup removed its bridges. Note: `openvswitch-switch.service`
+does not exist on this system (`is-active` reports "inactive" for
+unknown units); OVS works through another unit, so no service state
+was changed or needed restoring. The sudo credential was supplied from
+the owner's vault via a short-lived 0600 stdin file, deleted on exit,
+with the sudo timestamp revoked afterward; no secret persisted.
+
+### Band candidates for the uncovered metrics (unreviewed)
+
+The committed raw calibration runs already record `delay_median_ms`,
+`delay_p95_ms`, `jitter_mean_ms` and `throughput_mbps`; the aggregator
+never carried them through. Candidate bands for the three measurable
+metrics were derived from the committed raw runs under both statistics
+and stored outside the repository as diagnostics (not committed, not
+installed in any gate, explicitly UNREVIEWED). `queue_delay_ms` is
+recorded nowhere and needs a measurement definition first. Whether
+calibration-derived bands transfer to case conditions, and the
+statistic choice, are owner decisions.
+
+### Still pending owner decisions
+
+1. Band statistic: half-range vs true maximum deviation from the cell
+   median (the mislabel means the documented intent is ambiguous).
+2. Acceptance/installation of candidate bands for the three metrics.
+3. `queue_delay_ms` measurement definition.
+4. `capacity_floor_frac` semantics and manifest-to-scenario mapping.
+5. Acceptance-artefact revision binding: what the recorded
+   `code_revision` must match, and dirty-worktree treatment (proposal
+   reported separately; no gate behavior changed).
+6. Final review and acceptance of any validation round.
