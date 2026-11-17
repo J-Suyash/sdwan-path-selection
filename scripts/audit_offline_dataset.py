@@ -5,9 +5,16 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import sys
 from pathlib import Path
 
 import pandas as pd
+
+# Make the repo root importable so this script can be invoked directly
+# (e.g. by absolute path) from any working directory.
+REPO_ROOT = str(Path(__file__).resolve().parents[1])
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 from offline.ope import support_report
 

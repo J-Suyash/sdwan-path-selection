@@ -14,10 +14,17 @@ runs ~5,000x real time, so 200 simulated hours take a few wall minutes.
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+# Make the repo root importable so this script can be invoked directly
+# (e.g. by absolute path) from any working directory.
+REPO_ROOT = str(Path(__file__).resolve().parents[1])
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 from env import SDWanConfig, SDWanEnv
 from policies.incumbents import (
