@@ -357,3 +357,25 @@ def test_no_estimator_file_when_not_required(tmp_path):
     assert not (out / "emulator_estimator.csv").exists()
     manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
     assert manifest["estimator_csv"] is None
+
+
+def test_matched_mode_metric_determinism_across_seeds(tmp_path):
+    # D6 protocol: matched mode must be metric-deterministic; verified by
+    # running two seeds and requiring bit-identical numeric row values
+    # (string equality on repr), not by code inspection alone.
+    scenario = _write_scenario(tmp_path, rate_mbps=200.0, capacity_mbps=100.0)
+    tables = []
+    for seed in (0, 1):
+        out = tmp_path / f"out{seed}"
+        code = run_case(
+            scenario,
+            out_dir=out,
+            seed=seed,
+            required_metrics=["loss_frac", "throughput_mbps"],
+        )
+        assert code == 0
+        tables.append(_read_csv(out / "emulator_metrics.csv"))
+    assert len(tables[0]) == len(tables[1])
+    for row_a, row_b in zip(*tables):
+        assert row_a["metric"] == row_b["metric"]
+        assert row_a["value"] == row_b["value"]
