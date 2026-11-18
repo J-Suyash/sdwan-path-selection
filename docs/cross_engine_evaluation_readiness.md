@@ -1,6 +1,6 @@
 # Cross-engine evaluation readiness: measurement audit and smallest informative next experiment
 
-Status: REVIEW DRAFT for the owner, 18 Nov 2026 (revised after review: causal decision logic replaced by diagnostic-lead framing). Nothing here is adopted; the privileged stage needs a fresh scoped approval. Companion: cross_engine_validation_scope_recommendation.md, cross_engine_next_experiment_plan.md, cross_engine_timing_expanded_results.md.
+Status: REVIEW DRAFT for the owner, 18 Nov 2026 (revision 2 after review: causal decision logic replaced by diagnostic-lead framing; scope re-derived as smallest justified, interleaved order frozen, matched-window counting specified). Nothing here is adopted; the privileged stage needs a fresh scoped approval. Companion: cross_engine_validation_scope_recommendation.md, cross_engine_next_experiment_plan.md, cross_engine_timing_expanded_results.md.
 
 ## 1. Measurement definition audit (current state)
 
@@ -13,12 +13,13 @@ Status: REVIEW DRAFT for the owner, 18 Nov 2026 (revised after review: causal de
 | interruption_s | informative only, never gated (near-circular: emulator value derives from the testbed-calibrated switching model) | unchanged |
 | queue_delay_ms | EXCLUDED until an owner-adopted estimator pair exists | unchanged; residence-minus-base candidate still flagged (28% negatives on ce01 smoke) |
 | reordering_frac | Mininet-only diagnostic, gate entry OUT-OF-MODEL-SCOPE | unchanged |
-| clock-mapped timing | exploratory only | during-send cadence gap closed for future runs (a604831, hardened 129309d: try/finally stop/join on every exit path, per-tick lateness reported, starved ticks visible as missing labels); today's five runs remain tail-only coverage |
+| clock-mapped timing | exploratory only | during-send cadence gap closed for future runs (a604831, hardened 129309d: try/finally stop/join on every exit path, per-tick lateness reported, starved ticks visible as missing labels); ticks are best-effort under load and no future tick is guaranteed; today's five runs remain tail-only coverage |
 
 Residual instrumentation limits, stated not hidden:
 - 1400/1442 capacity convention is verified on this setup's qdisc counters and is setup-specific; tbf token-consumption length assumption is consistent-evidence-only (no separate rate-precision diagnostic).
 - cal_v1/v2 (240 runs) lack per-run receiver/pcap records; not invalidated, not independently verifiable.
-- Clock mapping carries declared 1 ms sensitivity assumption and 5 ms detectable-jump alarm; cadence ticks are best-effort under load with per-sample lateness reported and absent labels marking starved ticks.
+- Clock mapping carries declared 1 ms sensitivity assumption and 5 ms detectable-jump alarm; cadence ticks are best-effort under load with per-sample lateness reported and absent labels marking starved ticks; no sampler tick is guaranteed on any future run.
+- Backlog/queue inspection is sparse: best-effort ~1 s cadence with lateness reported. It cannot resolve sub-second drop placement or during-send queue dynamics; drop placement is identifiable only at inspection granularity, and the r01-r05 tail-only inspections say nothing about during-send placement.
 - The historical buffered-tail defect is strongly supported by exact reproduction, not a proof about any specific historical receive.
 
 ## 2. Scenario coverage audit
@@ -38,14 +39,21 @@ Frozen inputs:
 - Condition B (contrast): `testbed/scenarios/case_drafts/ce01.json` unchanged, sha256 f4944ae2e2db1c66c831b3042df04059702d33d9bf5138c3852ad41003e741e8 at 9f1acd3.
 - Condition A (control): `testbed/scenarios/case_drafts/ce01_control_nosag.json`, byte-identical to ce01.json except `"events": []` and the name/review fields, so offered 60 Mbps stays below five_g nominal 150 Mbps for the whole run. Hash recorded at execution time in the scope evidence.
 
+Scope, order, and rationale (frozen before data):
+- 5 runs of A and 5 fresh runs of B, interleaved in the counterbalanced order A B B A A B B A B A, frozen before any run. Interleaving bounds slow host drift (thermal, background load) so it cannot masquerade as a condition effect; the counterbalanced (ABBA) blocks balance condition against run position.
+- Why fresh contrast runs instead of reusing r01-r05: r01-r05 ran on the pre-sampler runner with tail-only clock coverage; the control runs would use the current runner with during-send cadence sampling. Reusing r01-r05 would confound condition with instrumentation version and with time. The open question is attribution of the offset, which needs A and B instrumentation-identical and contemporaneous.
+- Why not 5 control runs alone: a control-only batch against historical contrast answers only the limited descriptive question "does Mininet drop below capacity" and cannot support the attribution comparison; it is the smaller scope only if the owner narrows the question to that. For the stated open question, 5+5 interleaved is the smallest justified scope. n=5 per condition is a convention for side-by-side raw per-run values and ranges, not a statistical power claim.
+
+Matched counting rule (frozen before data): the paired comparison uses payload counts and rate over the identical fixed nominal send window on both engines (sent and delivered datagrams whose timestamps fall inside the 14 s send window), with the end-of-run boundary term (in-flight at send end, drained by 16 s) reported separately per run. Arrival-span throughput is retained as descriptive only and is excluded from the matched comparison because its denominator differs between engines.
+
 How to read outcomes (frozen before data): the A/B loss-offset pattern is a diagnostic lead, never a verdict. Each lead names the mechanism checks that discriminate it:
 - Offset present in both A and B: lead toward convention/accounting. Mechanism checks: qdisc counter conservation per run, capture sequence-set audit, end-of-run boundary term size, 1442 B policing arithmetic on actual counters.
-- Offset absent in A, present in B: lead toward regime-dependent queue behavior under saturation. Mechanism checks: per-inspection backlog series vs emulator occupancy trace, drop placement within the window, netem/tbf counter split, emulator queue accounting path (env/queue.py) under the same inputs.
+- Offset absent in A, present in B: lead toward regime-dependent queue behavior under saturation. Mechanism checks: per-inspection backlog series vs emulator occupancy trace (sparse ~1 s best-effort inspections; cannot resolve sub-second placement), drop placement at inspection granularity, netem/tbf counter split, emulator queue accounting path (env/queue.py) under the same inputs.
 - Material loss in A (control): lead toward configured queue/burst behavior or an instrumentation surface. Mechanism checks: which qdisc dropped, burst/limit parameters on the actual installed chain, capture drop counters - genuine configured behavior is itself a reportable finding, not an automatic instrumentation verdict.
 
 Stop rules are mechanical evidence-completeness only, identical in kind to the five-run scope: source-hash mismatch, output-dir collision, namespace/bridge/port collision, instrumentation incompleteness, or cleanup failure stops the series. No numeric outcome is a stop condition; adverse or unexpected results are preserved and reported, never replaced.
 
-Repetition rationale and resource effects: 5 runs per condition, matching the established n=5 contrast set, so raw per-run values and ranges sit side by side without invented statistics. Each Mininet run: ~14 s send inside a ~19 s horizon plus setup/teardown (~60-90 s wall total), ~75k packets, ~30 MB artifacts, sudo-required network namespace lifecycle identical to the approved five-run shape, s1 untouched, per-run cleanup verification. Two conditions x 5 runs = 10 runs, ~15-20 minutes total wall including per-run verification.
+Resource effects: each Mininet run is ~14 s send inside a ~19 s horizon plus setup/teardown (~60-90 s wall total), ~75k packets, ~30 MB artifacts, sudo-required network namespace lifecycle identical to the approved five-run shape, s1 untouched, per-run cleanup verification. Ten interleaved runs: ~15-20 minutes total wall including per-run verification.
 
 Emulator side is unprivileged and runs offline under scripts/run_emulator_matched_case.py for both conditions (control + contrast), seeds and repetitions recorded, all artifacts labeled raw_unvalidated_scaffolding.
 
