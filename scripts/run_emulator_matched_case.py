@@ -143,12 +143,10 @@ LIMITATIONS = [
     "0.5 RTT factor reproduces the configured one-way delay",
     "queue convention: testbed limit is netem/TBF max_queue_size in "
     "packets; matched buffer bytes = limit_packets * packet_bytes",
-    "capacity is applied at nominal case values; the proposed "
-    "payload-fraction convention (scale by packet_bytes/1442, from "
-    "verified qdisc counters accounting 1442 B per 1400 B datagram on "
-    "this setup) is recorded in "
-    "run_manifest.capacity_convention_proposed and is NOT applied until "
-    "the owner adopts it",
+    "capacity convention: matched capacities are scaled by "
+    "packet_bytes/1442 (working convention for this setup, P1 "
+    "exploratory evidence; see run_manifest.capacity_convention); "
+    "nominal case values are in the scenario JSON",
     "loss_frac comparability needs constant datagram size, an aligned "
     "full-run window, and boundary handling: bytes still queued at "
     "episode end are counted as neither delivered nor dropped here, so "
@@ -189,6 +187,13 @@ def matched_config(
             raise ValueError(
                 "matched buffer sizing needs one packet_bytes across workloads"
             )
+    # Working capacity convention for THIS setup (D1): the policed layer
+    # accounts 1442 B per 1400 B datagram (P1 diagnostic: counter-exact
+    # 1442 B/pkt, service-slope and backlog-slope agreement; exploratory
+    # provenance, setup-specific, no universal claim). The fluid model's
+    # capacities are payload-denominated, so matched capacity is scaled
+    # by packet_bytes/1442.
+    payload_fraction = wl.packet_bytes / 1442.0
     fixed_load = {cls: 0.0 for cls in ("voice", "video", "interactive", "bulk")}
     fixed_load[wl.flow_type] = wl.rate_mbps
     episode_seconds = int(wl.duration_s)
@@ -212,7 +217,10 @@ def matched_config(
     return SDWanConfig(
         episode_seconds=episode_seconds,
         load_stop_s=load_stop_s,
-        cap_mbps={p: spec.capacity_mbps for p, spec in scenario.paths.items()},
+        cap_mbps={
+            p: spec.capacity_mbps * payload_fraction
+            for p, spec in scenario.paths.items()
+        },
         queue_buffer_bytes={
             p: float(scenario.queue_limit_for(p) * wl.packet_bytes)
             for p in scenario.paths
@@ -221,7 +229,7 @@ def matched_config(
             p: {
                 "rtt_ms": spec.rtt_ms,
                 "loss": spec.loss_pct / 100.0,
-                "capacity_mbps": spec.capacity_mbps,
+                "capacity_mbps": spec.capacity_mbps * payload_fraction,
             }
             for p, spec in scenario.paths.items()
         },
@@ -272,6 +280,7 @@ def run_case(
         print("error: case drafts are single-workload", file=sys.stderr)
         return 1
     (wl_name, wl), = scenario.workloads.items()
+    payload_fraction = wl.packet_bytes / 1442.0
     switch_events = [e for e in scenario.events if isinstance(e, SwitchEvent)]
     capacity_events = [e for e in scenario.events if isinstance(e, CapacityEvent)]
     if switch_events and not calibration_path:
@@ -361,7 +370,9 @@ def run_case(
         for t in range(cfg.episode_steps):
             if t == event_step:
                 for event in capacity_events:
-                    env.series[event.path]["capacity"][t:] = event.capacity_mbps
+                    env.series[event.path]["capacity"][t:] = (
+                        event.capacity_mbps * payload_fraction
+                    )
                 for event in switch_events:
                     flow_cls = scenario.workloads[event.workload].flow_type
                     assignment[flow_cls] = event.new_path
@@ -612,16 +623,17 @@ def run_case(
                     "windows": windows,
                     "numeric_csv": metrics_name,
                     "estimator_csv": estimator_name,
-                    "capacity_convention_proposed": {
+                    "capacity_convention": {
                         "scale_factor": wl.packet_bytes / 1442.0,
-                        "applied": False,
+                        "applied": True,
+                        "scope": "this setup only; working convention",
                         "basis": (
-                            "verified qdisc counters account 1442 B per "
-                            "1400 B datagram on this setup (tbf/netem Sent "
-                            "and backlog exact multiples of 1442); the tbf "
-                            "token-consumption length basis is assumed the "
-                            "same as bstats and is NOT separately "
-                            "rate-validated"
+                            "P1 diagnostic 18 Nov 2026 "
+                            "(docs/cross_engine_p1_rate_diagnostic_results.md): "
+                            "qdisc counters 1442 B/pkt exact; service-slope "
+                            "and backlog-slope agreement with wire-length "
+                            "token accounting (exploratory, post-observation "
+                            "discriminators); no universal claim"
                         ),
                     },
                     "limitations": LIMITATIONS,

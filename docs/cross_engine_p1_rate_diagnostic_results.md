@@ -48,14 +48,17 @@ and does not change the rate.
 ## Exploratory rate analysis (post-observation discriminators)
 
 - qdisc Sent-counter slope over the saturated window (service rate in
-  accounted bytes): measured 6,250,521 +/- 217 B/s (2 sigma, n=176,
-  residual sd 8,140 B). Predictions: wire-length tokens 6,250,000;
-  L3-length tokens 6,309,000; payload-length tokens 6,438,000 B/s.
-  Measured matches wire-length within 0.008%; the L3 alternative is
-  ~58,500 B/s away (~270 sigma).
-- Backlog growth slope, same window: measured 187,198 +/- 91 B/s
-  (residual sd 3,415 B). Predictions: wire 187,600; L3 128,600;
-  payload ~0 B/s. Matches wire within 0.2%; L3 is ~59,000 B/s away.
+  accounted bytes): measured 6,250,521 B/s (least-squares over n=176
+  samples, residual sd 8,140 B; residuals are autocorrelated, so no
+  independent-replicate uncertainty is claimed). Predictions:
+  wire-length tokens 6,250,000; L3-length tokens 6,309,000;
+  payload-length tokens 6,438,000 B/s. Measured agrees with wire-length
+  to 0.008% and sits 58,500 B/s from the L3 alternative - descriptive
+  agreement, not a significance claim.
+- Backlog growth slope, same window: measured 187,198 B/s (residual
+  sd 3,415 B). Predictions: wire 187,600; L3 128,600; payload ~0 B/s.
+  Agrees with wire within 0.2% and sits ~59,000 B/s from the L3
+  alternative - again descriptive agreement.
 - Corroboration: peak backlog 3,785,250 B (2,625 packets, vs ~2,600
   predicted under wire accounting) at t=20.64 s, then drained in
   ~0.61 s after send stop. Startup region flat at 0 backlog.
@@ -67,8 +70,9 @@ and does not change the rate.
 
 On this setup, tbf accounts and polices at 1442 B per 1400 B datagram
 (Ethernet-inclusive wire size): counter-exact at the byte/packet ratio
-and matched by the service-rate slope and backlog-growth slope with
-margins of hundreds of sigma. The D1 residual assumption (token
+and descriptively matched by the service-rate slope and backlog-growth
+slope (0.008% and 0.2% from the wire-accounting predictions; the
+nearest alternative is tens of KB/s away on both). The D1 residual assumption (token
 consumption length basis) has direct rate evidence for wire-size
 accounting. Caveat carried honestly: the rate-based discriminators were
 adopted after observing zero drops (exploratory, not prespecified);

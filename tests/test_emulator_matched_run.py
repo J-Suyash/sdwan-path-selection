@@ -149,10 +149,12 @@ def test_run_case_saturation_drops_full_run(tmp_path):
     code = run_case(scenario, out_dir=out, required_metrics=["loss_frac"])
     assert code == 0
     rows = _read_csv(out / "emulator_metrics.csv")
-    # Full-run window: step 0 drops 11.1e6 B, steps 1-3 drop 12.5e6 B
-    # each (buffer drains and re-admits); 48.6e6 / 100e6 = 0.486.
+    # Full-run window with the 1400/1442 capacity convention: service
+    # 12,135,922.33 B/step; step 0 drops 11,464,077.67 B, steps 1-3 drop
+    # 12,864,077.67 B each (buffer drains and re-admits);
+    # 50,056,310.7 / 1e8 = 0.500563107.
     for row in rows:
-        assert float(row["value"]) == pytest.approx(0.486)
+        assert float(row["value"]) == pytest.approx(0.500563107, rel=1e-6)
 
 
 def test_run_case_fail_closed_on_unsupported_metric(tmp_path):
@@ -265,11 +267,13 @@ def test_capacity_event_sag_causes_post_warmup_loss(tmp_path):
     code = run_case(scenario, out_dir=out, required_metrics=["loss_frac"])
     assert code == 0
     rows = _read_csv(out / "emulator_metrics.csv")
-    # Full-run fluid accounting: step 0 clean; step 1 drops 4.85e6 B;
-    # steps 2-3 drop 6.25e6 B each (the 1.4e6 B buffer drains and
-    # re-admits every step); 17.35e6 / 40e6 = 0.43375.
+    # Full-run fluid accounting with the 1400/1442 convention: pre-sag
+    # service 12,135,922.33 B/step (step 0 clean, offered 10e6);
+    # post-sag 3,640,776.70 B/step; step 1 drops
+    # 10e6 - 3,640,776.70 - 1.4e6 = 4,959,223.30 B; steps 2-3 drop
+    # 6,359,223.30 B each; 17,677,669.9 / 40e6 = 0.441941747.
     for row in rows:
-        assert float(row["value"]) == pytest.approx(0.43375)
+        assert float(row["value"]) == pytest.approx(0.441941747, rel=1e-6)
     manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
     assert manifest["label"] == "raw_unvalidated_scaffolding"
     assert manifest["start_path"] == "bb"
@@ -281,7 +285,8 @@ def test_matched_config_uses_case_values(tmp_path):
 
     scenario = load_scenario(scenario_path)
     cfg = matched_config(scenario, "w", None)
-    assert cfg.cap_mbps["five_g"] == 150.0
+    # Working capacity convention: nominal 150 x 1400/1442.
+    assert cfg.cap_mbps["five_g"] == pytest.approx(150.0 * 1400.0 / 1442.0)
     assert cfg.queue_buffer_bytes["bb"] == 1000 * 1400
     assert cfg.allow_synthetic_traces is False
     assert cfg.fixed_load_mbps["bulk"] == 10.0
@@ -325,9 +330,10 @@ def test_estimator_candidate_rows_emitted_but_never_gate(tmp_path):
     assert manifest["estimator_csv"] == "emulator_estimator.csv"
     for window in manifest["windows"]:
         assert window["end_residual_occupancy_bytes"] == 0.0
-    proposed = manifest["capacity_convention_proposed"]
-    assert proposed["applied"] is False
-    assert proposed["scale_factor"] == pytest.approx(1400.0 / 1442.0)
+    convention = manifest["capacity_convention"]
+    assert convention["applied"] is True
+    assert convention["scale_factor"] == pytest.approx(1400.0 / 1442.0)
+    assert "exploratory" in convention["basis"]
 
 
 def test_estimator_candidate_saturation_and_residual_boundary(tmp_path):
@@ -402,12 +408,15 @@ def test_drain_phase_termination_and_window(tmp_path):
     rows = _read_csv(out / "emulator_metrics.csv")
     for row in rows:
         if row["metric"] == "loss_frac":
-            # Drops are unchanged (48.6e6 B over the 4 s send window);
-            # offered is 1e8 B (no load after t=4).
-            assert float(row["value"]) == pytest.approx(0.486)
+            # Drops over the 4 s send window with the 1400/1442
+            # convention: 50,056,310.7 B; offered is 1e8 B (no load
+            # after t=4).
+            assert float(row["value"]) == pytest.approx(0.500563107, rel=1e-6)
         else:
             # Delivered includes the drained 1.4e6 B; window is 5 s.
-            assert float(row["value"]) == pytest.approx(51.4e6 * 8 / 1e6 / 5.0)
+            assert float(row["value"]) == pytest.approx(
+                49_943_689.3 * 8 / 1e6 / 5.0, rel=1e-5
+            )
     manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
     assert manifest["drain_enabled"] is True
     assert manifest["load_stop_s"] == 4.0
