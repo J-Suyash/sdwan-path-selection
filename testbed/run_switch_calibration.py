@@ -37,7 +37,7 @@ from testbed.analyze import (
     summarize_pcap,
     summarize_traffic,
 )
-from testbed.scenario import Scenario, SwitchEvent, load_scenario
+from testbed.scenario import CapacityEvent, Scenario, SwitchEvent, load_scenario
 
 ROOT = Path(__file__).resolve().parents[1]
 TRAFFIC_SCRIPT = ROOT / "testbed" / "traffic.py"
@@ -79,6 +79,10 @@ def build_run_plan(
         raise ValueError("repetitions must be positive")
     plan = []
     for event_index, event in enumerate(scenario.events):
+        if isinstance(event, CapacityEvent):
+            old_name = new_name = event.path
+        else:
+            old_name, new_name = event.old_path, event.new_path
         for repetition in range(repeats):
             run_id = f"e{event_index:02d}-r{repetition:02d}"
             plan.append(
@@ -87,12 +91,18 @@ def build_run_plan(
                     event_index=event_index,
                     repetition=repetition,
                     workload=event.workload,
-                    old_path=event.old_path,
-                    new_path=event.new_path,
+                    old_path=old_name,
+                    new_path=new_name,
                     directory=str(output_dir / run_id),
                 )
             )
     return plan
+
+
+def describe_event(event) -> str:
+    if isinstance(event, CapacityEvent):
+        return f"{event.workload} {event.path} capacity->{event.capacity_mbps}Mbps"
+    return f"{event.workload} {event.old_path}->{event.new_path}"
 
 
 def tool_versions() -> dict[str, str]:
@@ -221,9 +231,12 @@ def run_one(
     scenario: Scenario,
     plan: RunPlan,
     *,
-    event: SwitchEvent,
+    event,  # SwitchEvent | CapacityEvent
     capture: bool,
 ) -> dict:
+    is_switch = isinstance(event, SwitchEvent)
+    start_path = event.old_path if is_switch else event.path
+    end_path = event.new_path if is_switch else event.path
     workload = scenario.workloads[event.workload]
     client = testbed.clients[workload.flow_type]
     server = testbed.server
@@ -231,7 +244,7 @@ def run_one(
     output_dir.mkdir(parents=True, exist_ok=False)
 
     testbed.clear_class_route()
-    testbed.install_route(event, event.old_path)
+    testbed.install_route(event, start_path)
     timeout_s = workload.duration_s + 8.0
     server_log = output_dir / "receiver.csv"
     sender_log = output_dir / "sender.csv"
@@ -273,14 +286,17 @@ def run_one(
     )
 
     time.sleep(workload.warmup_s)
-    qdisc_before = testbed.qdisc_stats(event.old_path)
+    qdisc_before = testbed.qdisc_stats(start_path)
     qdisc_before_path.write_text(qdisc_before, encoding="utf-8")
     switch_started = time.monotonic()
-    testbed.modify_route(event, event.new_path)
+    if is_switch:
+        testbed.modify_route(event, end_path)
+    else:
+        testbed.set_path_capacity(end_path, event.capacity_mbps)
     route_update_s = time.monotonic() - switch_started
     remaining = max(0.0, workload.duration_s - workload.warmup_s)
     time.sleep(remaining + 2.5)
-    qdisc_after = testbed.qdisc_stats(event.new_path)
+    qdisc_after = testbed.qdisc_stats(end_path)
     qdisc_after_path.write_text(qdisc_after, encoding="utf-8")
 
     if capture_pid is not None:
@@ -296,13 +312,13 @@ def run_one(
         switch_at_s=switch_started,
     )
     pcap = summarize_pcap(pcap_path)
-    old_path = scenario.paths[event.old_path]
-    new_path = scenario.paths[event.new_path]
+    old_path = scenario.paths[start_path]
+    new_path = scenario.paths[end_path]
     # The backlog sits on the old path's qdisc, whose limit is the
     # per-path value when configured; convert the packet limit to bytes
     # with the workload's actual packet size, not a fixed 1500.
     queue_limit_bytes = (
-        scenario.queue_limit_for(event.old_path) * workload.packet_bytes
+        scenario.queue_limit_for(start_path) * workload.packet_bytes
     )
     old_backlog = parse_qdisc_backlog_bytes(qdisc_before)
     packets_in_flight = max(
@@ -333,8 +349,8 @@ def run_one(
         "workload": workload.name,
         "flow_type": workload.flow_type,
         "transport": workload.transport,
-        "old_path": event.old_path,
-        "new_path": event.new_path,
+        "old_path": start_path,
+        "new_path": end_path,
         "old_rtt_ms": old_path.rtt_ms,
         "new_rtt_ms": new_path.rtt_ms,
         "old_jitter_ms": old_path.jitter_ms,
@@ -356,10 +372,16 @@ def run_one(
         "tcp_retransmissions": pcap["tcp_retransmissions"],
         "tcp_out_of_order": pcap["tcp_out_of_order"],
         "old_path_capacity_mbps": old_path.capacity_mbps,
-        "new_path_capacity_mbps": new_path.capacity_mbps,
+        "new_path_capacity_mbps": (
+            new_path.capacity_mbps if is_switch else event.capacity_mbps
+        ),
         "old_path_loss_pct": old_path.loss_pct,
         "new_path_loss_pct": new_path.loss_pct,
-        "rule_update_method": "ovs-ofctl-openflow13-mod-flows",
+        "rule_update_method": (
+            "ovs-ofctl-openflow13-mod-flows"
+            if is_switch
+            else "tc-tbf-reconfigure"
+        ),
         "quality_status": "raw_unvalidated",
     }
     write_json(output_dir / "metrics.json", metrics)
@@ -381,7 +403,7 @@ def run_actual(scenario: Scenario, plan: list[RunPlan], capture: bool) -> list[d
         for item in plan:
             event = scenario.events[item.event_index]
             print(
-                f"[{item.run_id}] {event.workload} {event.old_path}->{event.new_path}",
+                f"[{item.run_id}] {describe_event(event)}",
                 flush=True,
             )
             results.append(

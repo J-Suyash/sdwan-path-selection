@@ -41,12 +41,27 @@ class SwitchEvent:
 
 
 @dataclass(frozen=True)
+class CapacityEvent:
+    """Change one path's capacity at the event point (ce01-style sag).
+
+    Unlike a SwitchEvent this never moves traffic: the run's workload stays
+    on `path`; at the event point the path link's rate limit is set to
+    capacity_mbps while delay/jitter/loss stay as configured. Scaffolding
+    for owner-reviewed cases; implies nothing about validation.
+    """
+
+    workload: str
+    path: str
+    capacity_mbps: float
+
+
+@dataclass(frozen=True)
 class Scenario:
     name: str
     server_ip: str
     paths: dict[str, PathSpec]
     workloads: dict[str, WorkloadSpec]
-    events: tuple[SwitchEvent, ...]
+    events: tuple  # SwitchEvent | CapacityEvent
     repetitions: int = 1
     queue_limit_packets: int = 1000
     per_path_queue_limit_packets: dict[str, int] | None = None
@@ -66,13 +81,34 @@ class Scenario:
         return self.queue_limit_packets
 
 
+def _load_event(raw: dict) -> SwitchEvent | CapacityEvent:
+    """Dispatch one events[] entry.
+
+    A capacity_mbps field marks a capacity event; anything else must be a
+    switch event. Entries carrying both switch and capacity fields are
+    ambiguous and rejected.
+    """
+    if "capacity_mbps" in raw:
+        unknown = set(raw) - {"workload", "path", "capacity_mbps"}
+        if unknown:
+            raise ValueError(
+                f"capacity event has unexpected fields: {sorted(unknown)}"
+            )
+        return CapacityEvent(
+            workload=raw["workload"],
+            path=raw["path"],
+            capacity_mbps=float(raw["capacity_mbps"]),
+        )
+    return SwitchEvent(**raw)
+
+
 def load_scenario(path: str | Path) -> Scenario:
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
     paths = {name: PathSpec(name=name, **spec) for name, spec in raw["paths"].items()}
     workloads = {
         name: WorkloadSpec(name=name, **spec) for name, spec in raw["workloads"].items()
     }
-    events = tuple(SwitchEvent(**event) for event in raw["events"])
+    events = tuple(_load_event(event) for event in raw["events"])
     scenario = Scenario(
         name=raw["name"],
         server_ip=raw["server_ip"],
@@ -119,6 +155,12 @@ def validate_scenario(scenario: Scenario) -> None:
     for event in scenario.events:
         if event.workload not in scenario.workloads:
             raise ValueError(f"event references unknown workload {event.workload}")
+        if isinstance(event, CapacityEvent):
+            if event.path not in scenario.paths:
+                raise ValueError(f"event references unknown path {event.path}")
+            if event.capacity_mbps <= 0:
+                raise ValueError("capacity event capacity must be positive")
+            continue
         for path in (event.old_path, event.new_path):
             if path not in scenario.paths:
                 raise ValueError(f"event references unknown path {path}")
@@ -139,7 +181,7 @@ def reverse_selector(workload: WorkloadSpec, server_ip: str) -> str:
 
 def route_flows(
     scenario: Scenario,
-    event: SwitchEvent,
+    event,  # SwitchEvent | CapacityEvent (only .workload is used)
     path: str,
     *,
     path_port: int,

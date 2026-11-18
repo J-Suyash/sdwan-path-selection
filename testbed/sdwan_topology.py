@@ -22,6 +22,7 @@ class TestbedNetwork:
     clients: dict[str, object]
     server: object
     path_ports: dict[str, int]
+    path_links: dict[str, object]
     class_ports: dict[str, int]
     server_port: int
     scenario: Scenario
@@ -47,6 +48,28 @@ class TestbedNetwork:
         port = self.path_ports[path]
         intf = next(intf for intf, value in self.branch.ports.items() if value == port)
         return self.branch.cmd(f"tc -s qdisc show dev {shlex.quote(intf.name)}")
+
+    def set_path_capacity(self, path: str, capacity_mbps: float) -> None:
+        """Change a path link's rate limit at the event point.
+
+        TCIntf.config rebuilds the qdisc stack from the parameters it is
+        given (verified against the installed mininet/link.py), so every
+        original impairment is re-supplied here: passing bw alone would
+        silently drop the path's delay/jitter/loss and queue limit. Both
+        link interfaces are reconfigured, matching build-time shaping.
+        """
+        spec = self.scenario.paths[path]
+        kwargs = dict(
+            bw=capacity_mbps,
+            delay=f"{spec.one_way_delay_ms}ms",
+            jitter=f"{spec.jitter_ms}ms",
+            loss=spec.loss_pct,
+            use_tbf=True,
+            max_queue_size=self.scenario.queue_limit_for(path),
+        )
+        link = self.path_links[path]
+        link.intf1.config(**kwargs)
+        link.intf2.config(**kwargs)
 
     def _install_route(self, event: SwitchEvent, path: str, *, operation: str) -> None:
         flows = route_flows(
@@ -124,6 +147,7 @@ def build_network(scenario: Scenario) -> TestbedNetwork:
     )
 
     path_ports: dict[str, int] = {}
+    path_links: dict[str, object] = {}
     for index, path in enumerate(scenario.paths.values(), start=2):
         link = net.addLink(
             branch,
@@ -138,6 +162,7 @@ def build_network(scenario: Scenario) -> TestbedNetwork:
             max_queue_size=scenario.queue_limit_for(path.name),
         )
         path_ports[path.name] = branch.ports[link.intf1]
+        path_links[path.name] = link
 
     clients = {}
     class_ports: dict[str, int] = {}
@@ -166,6 +191,7 @@ def build_network(scenario: Scenario) -> TestbedNetwork:
         clients=clients,
         server=server,
         path_ports=path_ports,
+        path_links=path_links,
         class_ports=class_ports,
         server_port=hub.ports[server_link.intf2],
         scenario=scenario,
