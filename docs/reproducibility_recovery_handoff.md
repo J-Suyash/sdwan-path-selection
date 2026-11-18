@@ -369,9 +369,13 @@ statistic choice, are owner decisions.
    update 2026-11-18: the committed repeatability JSONs store
    per-repetition values, so both statistics are computable from
    committed hashed inputs; an uncommitted comparison artifact
-   (/home/sxtr/band_stat_compare_v2.json, script attached to the same
-   report) reproduces the committed bands bit-exactly and tabulates
-   both candidates with the e00-r00 outlier in and out. The committed
+   (/home/sxtr/band_stat_compare_v3.json, delivered as
+   sdwan-band-statistic-candidates-v3-20261118.json with script
+   sdwan-band-statistic-compare-v3.py; supersedes v2, whose
+   exclusion was not scoped to round+run keys even though run_ids
+   repeat across rounds) reproduces the committed bands
+   bit-exactly and tabulates both candidates with the e00-r00
+   outlier in and out. The committed
    bands embed e00-r00, whose ruling is still open, so that ruling
    changes the band values.
 2. Acceptance/installation of candidate bands for the three metrics.
@@ -425,6 +429,19 @@ scientific behavior, threshold or acceptance question was changed.
   in the worktree). The run trained a toy CartPole policy unrelated to
   project data; its output is not referenced by any result. Item 2
   fixes the defect class.
+- 06:08 IST: a SEPARATE, deliberate invocation of
+  `scripts/check_cql_cartpole.py` (no flags) during the
+  demo/repro-path audit, misclassified as a bounded check even
+  though it trains. It ran the same 5-epoch CPU CartPole CQL
+  training (~26 s, 500 steps, final mean return 440.0), wrote
+  `d3rlpy_logs/DiscreteCQL_20261118060820/` (model_400.d3,
+  model_500.d3) into the worktree, deleted afterward; no project
+  data, no paid model, nothing committed, worktree verified
+  clean. This violated the standing no-training boundary by
+  misclassification and was disclosed to the owner; no further
+  training of any kind followed. Unlike the 04:05 accidental
+  `--help` probe, this run was intentional under a wrong
+  classification.
 - ~04:15 IST: the full suite failed
   `test_sla_decomposition.py::test_decomposition_reproduces_violations_from_raw_transitions`
   ([11, 1137, 10] vs committed [80, 952, 1]) because the untracked
@@ -434,7 +451,11 @@ scientific behavior, threshold or acceptance question was changed.
   checkout's data) and left in place deliberately; the failure mode
   motivated item 4.
 
-Test state: 147 passed at de9b28b; 150 passed at 4461cbe (142.85 s, one
-known SciPy warning). These are engineering regression tests; they do
+Historical checkpoint (superseded - do not read as current): 147
+passed at de9b28b; 150 passed at 4461cbe (142.85 s, one
+known SciPy warning). Later commits include the 28a58b5 testbed
+code change; the current state (157 passed at 28a58b5, later
+commits docs/comments only) is in the Current state section at
+the top. These are engineering regression tests; they do
 not validate any scientific conclusion, and every acceptance question in
 "Still pending owner decisions" above remains open.
