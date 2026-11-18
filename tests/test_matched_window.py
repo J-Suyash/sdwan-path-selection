@@ -91,6 +91,9 @@ def test_runner_opt_in_path_without_mininet(tmp_path, monkeypatch):
     assert resets[:3] == [(p, spec.capacity_mbps) for p, spec in s.paths.items()]
     restored = json.loads((Path(plan.directory) / "restored_initial_qdiscs.json").read_text())
     assert restored["restored_monotonic_s"] < endpoint["t0_monotonic_s"]
+    clock = json.loads((Path(plan.directory) / "clock_samples.json").read_text())
+    assert clock["cadence_s"] == 1.0
+    assert [x["label"] for x in clock["samples"]] == ["before_traffic", "at_t0_plus_15s", "after_inspection_15s", "after_t1"]
     assert endpoint["drain_termination"] == "drained"
     assert endpoint["t1_monotonic_s"] == 115
     assert endpoint["application_summary"]["measurement_window_s"] == 15

@@ -180,6 +180,36 @@ def stop_background(node, pid: int, *, signal: str = "TERM") -> None:
     node.cmd(f"kill -{signal} {pid} 2>/dev/null || true")
 
 
+def record_clock_sample(label: str, order_offset: float = 0.0) -> dict:
+    """Adjacent clock reads; the bracket is the only honest association."""
+    epoch_before = time.time()
+    monotonic = time.monotonic()
+    epoch_after = time.time()
+    return {
+        "label": label,
+        "epoch_before_s": epoch_before,
+        "monotonic_s": monotonic,
+        "epoch_after_s": epoch_after,
+        "sampling_bracket_s": epoch_after - epoch_before,
+        "sample_order_offset_s": order_offset,
+    }
+
+
+def write_clock_samples(path: Path, samples: list[dict]) -> None:
+    write_json(
+        path,
+        {
+            "samples": samples,
+            "cadence_s": 1.0,
+            "meaning": (
+                "sampled-clock envelope only; samples can expose observed "
+                "steps/nonlinearity but cannot prove none occurred between "
+                "samples"
+            ),
+        },
+    )
+
+
 def traffic_command(
     workload,
     role: str,
@@ -289,6 +319,9 @@ def run_one(
     timeout_s = (window_spec["max_episode_s"] + 10.0) if window_spec else workload.duration_s + 8.0
     start_marker = output_dir / "sender_start.json" if matched_drain else None
     matched_endpoint = None
+    clock_samples = []
+    if matched_drain:
+        clock_samples.append(record_clock_sample("before_traffic"))
     server_log = output_dir / "receiver.csv"
     sender_log = output_dir / "sender.csv"
     server_stdout = output_dir / "receiver.log"
@@ -392,10 +425,27 @@ def run_one(
         inspections = []
         for offset in inspection_offsets(window_spec):
             target = t0 + offset
+            while time.monotonic() < target - 1e-9:
+                # Declared cadence is one sample per second from t0.
+                cadence_count = sum(
+                    1 for s in clock_samples if s["label"].startswith("cadence_")
+                )
+                next_sample = t0 + cadence_count + 1
+                if time.monotonic() < min(target, next_sample):
+                    sleep_to = min(target, next_sample)
+                    time.sleep(max(0.0, sleep_to - time.monotonic()))
+                    if time.monotonic() >= next_sample - 1e-9:
+                        clock_samples.append(record_clock_sample(f"cadence_{next_sample - t0:02.0f}s"))
+                else:
+                    break
             time.sleep(max(0.0, target - time.monotonic()))
+            clock_samples.append(record_clock_sample(f"at_t0_plus_{offset:02d}s"))
             sample_started = time.monotonic()
             raw_qdiscs = {p: testbed.qdisc_stats(p) for p in scenario.paths}
             sample_ended = time.monotonic()
+            # Direct endpoint-domain evidence around the actual t1 event;
+            # interpolation is not substituted for this bracket.
+            clock_samples.append(record_clock_sample(f"after_inspection_{offset:02d}s"))
             snapshot = queue_snapshot(raw_qdiscs)
             write_json(output_dir / f"drain_qdisc_{offset:02d}.json", raw_qdiscs)
             inspections.append({"nominal_offset_s": offset, "sample_started_monotonic_s": sample_started,
@@ -411,9 +461,11 @@ def run_one(
                             "actual_event_offset_s": switch_started - t0,
                             "host_sampling_lateness_s": t1 - (t0 + inspections[-1]["nominal_offset_s"]),
                             "in_flight_caveat": "zero qdisc backlog is not proof that every dequeued packet reached the application"}
+        clock_samples.append(record_clock_sample("after_t1"))
         # Collect late arrivals separately, then filter the matched-window
         # summary at t1. This grace is NOT added to its denominator.
         time.sleep(0.5)
+        write_clock_samples(output_dir / "clock_samples.json", clock_samples)
     else:
         time.sleep(remaining + 2.5)
     qdisc_after = testbed.qdisc_stats(end_path)
