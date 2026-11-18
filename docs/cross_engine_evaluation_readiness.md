@@ -1,6 +1,6 @@
 # Cross-engine evaluation readiness: measurement audit and smallest informative next experiment
 
-Status: REVIEW DRAFT for the owner, 18 Nov 2026. Nothing here is adopted; the privileged stage needs a fresh scoped approval. Companion: cross_engine_validation_scope_recommendation.md, cross_engine_next_experiment_plan.md, cross_engine_timing_expanded_results.md.
+Status: REVIEW DRAFT for the owner, 18 Nov 2026 (revised after review: causal decision logic replaced by diagnostic-lead framing). Nothing here is adopted; the privileged stage needs a fresh scoped approval. Companion: cross_engine_validation_scope_recommendation.md, cross_engine_next_experiment_plan.md, cross_engine_timing_expanded_results.md.
 
 ## 1. Measurement definition audit (current state)
 
@@ -13,7 +13,7 @@ Status: REVIEW DRAFT for the owner, 18 Nov 2026. Nothing here is adopted; the pr
 | interruption_s | informative only, never gated (near-circular: emulator value derives from the testbed-calibrated switching model) | unchanged |
 | queue_delay_ms | EXCLUDED until an owner-adopted estimator pair exists | unchanged; residence-minus-base candidate still flagged (28% negatives on ce01 smoke) |
 | reordering_frac | Mininet-only diagnostic, gate entry OUT-OF-MODEL-SCOPE | unchanged |
-| clock-mapped timing | exploratory only | during-send cadence gap closed for future runs (a604831, hardened at the follow-up lifecycle review); today's five runs remain tail-only coverage |
+| clock-mapped timing | exploratory only | during-send cadence gap closed for future runs (a604831, hardened 129309d: try/finally stop/join on every exit path, per-tick lateness reported, starved ticks visible as missing labels); today's five runs remain tail-only coverage |
 
 Residual instrumentation limits, stated not hidden:
 - 1400/1442 capacity convention is verified on this setup's qdisc counters and is setup-specific; tbf token-consumption length assumption is consistent-evidence-only (no separate rate-precision diagnostic).
@@ -28,30 +28,35 @@ Residual instrumentation limits, stated not hidden:
 - ce03 (interactive loss boundary, 5%): the current draft applies zero netem loss; the loss boundary is never stressed. Draft preserved unchanged, flagged for owner review.
 - ce04 and cross_engine_cases.json remain as specified; no case currently exercises an SLA decision boundary end-to-end.
 
-## 3. What today's evidence does and does not separate
+## 3. The open question today's evidence cannot answer
 
-Across r01-r05 the Mininet loss fraction sits +0.208 to +0.233 pp above the fluid emulator on matched ce01 inputs, with tight repeatability. This single-regime offset cannot be attributed yet: it could be an accounting-convention artifact (1442 B policing, end-of-run boundary term), a queue-model discrepancy that appears only under saturation, or both. One regime cannot separate a constant offset from a regime-dependent model error.
+Across r01-r05 the Mininet loss fraction sits +0.208 to +0.233 pp above the fluid emulator on matched ce01 inputs, tightly repeated. One regime cannot attribute this offset. Candidate families: accounting/convention artifacts (1442 B policing, end-of-run boundary term), a queue-model discrepancy that appears only under saturation, or an interaction. Accounting differences can themselves be load-dependent, so a control-condition pattern alone cannot deliver a causal verdict either.
 
-## 4. Smallest scientifically informative next experiment (proposal)
+## 4. Smallest informative next step (proposal): control + contrast pair as diagnostic leads
 
-A two-condition matched pair set, both under the existing matched harness, quantity-level gate metrics only:
+Frozen inputs:
+- Condition B (contrast): `testbed/scenarios/case_drafts/ce01.json` unchanged, sha256 f4944ae2e2db1c66c831b3042df04059702d33d9bf5138c3852ad41003e741e8 at 9f1acd3.
+- Condition A (control): `testbed/scenarios/case_drafts/ce01_control_nosag.json`, byte-identical to ce01.json except `"events": []` and the name/review fields, so offered 60 Mbps stays below five_g nominal 150 Mbps for the whole run. Hash recorded at execution time in the scope evidence.
 
-- Condition A (control): ce01 workload and paths with NO capacity sag (capacity stays above the offered rate). Expected loss near zero on both engines. Purpose: expose any constant accounting/convention offset, including the boundary term, in the absence of queue saturation.
-- Condition B (contrast): ce01 as run today (sag into saturation). Already evidenced by r01-r05 on the Mininet side; one or a small number of matched repeats would confirm stability alongside the control.
+How to read outcomes (frozen before data): the A/B loss-offset pattern is a diagnostic lead, never a verdict. Each lead names the mechanism checks that discriminate it:
+- Offset present in both A and B: lead toward convention/accounting. Mechanism checks: qdisc counter conservation per run, capture sequence-set audit, end-of-run boundary term size, 1442 B policing arithmetic on actual counters.
+- Offset absent in A, present in B: lead toward regime-dependent queue behavior under saturation. Mechanism checks: per-inspection backlog series vs emulator occupancy trace, drop placement within the window, netem/tbf counter split, emulator queue accounting path (env/queue.py) under the same inputs.
+- Material loss in A (control): lead toward configured queue/burst behavior or an instrumentation surface. Mechanism checks: which qdisc dropped, burst/limit parameters on the actual installed chain, capture drop counters - genuine configured behavior is itself a reportable finding, not an automatic instrumentation verdict.
 
-Decision logic, frozen before data:
-- If the offset appears in A as well: points to convention/accounting, not the fluid queue model. Next step is accounting reconciliation, no model conclusion.
-- If the offset is absent in A but present in B: points to regime-dependent queue-model discrepancy under saturation, a real model finding worth the owner's interpretation.
-- Any other pattern (e.g., large control loss): an instrumentation defect surface; stop and diagnose before any model statement.
+Stop rules are mechanical evidence-completeness only, identical in kind to the five-run scope: source-hash mismatch, output-dir collision, namespace/bridge/port collision, instrumentation incompleteness, or cleanup failure stops the series. No numeric outcome is a stop condition; adverse or unexpected results are preserved and reported, never replaced.
 
-Explicit non-goals: no acceptance bands fitted to outcomes, no statistical uncertainty invented beyond raw per-run values and ranges, no timing-gate claims (mapped timing stays exploratory), no SLA-boundary claims (blocked on the ce02/ce03 retune decision, which is the owner's).
+Repetition rationale and resource effects: 5 runs per condition, matching the established n=5 contrast set, so raw per-run values and ranges sit side by side without invented statistics. Each Mininet run: ~14 s send inside a ~19 s horizon plus setup/teardown (~60-90 s wall total), ~75k packets, ~30 MB artifacts, sudo-required network namespace lifecycle identical to the approved five-run shape, s1 untouched, per-run cleanup verification. Two conditions x 5 runs = 10 runs, ~15-20 minutes total wall including per-run verification.
+
+Emulator side is unprivileged and runs offline under scripts/run_emulator_matched_case.py for both conditions (control + contrast), seeds and repetitions recorded, all artifacts labeled raw_unvalidated_scaffolding.
+
+Explicit non-goals: no acceptance bands fitted to outcomes, no statistical uncertainty beyond raw per-run values and ranges, no timing-gate claims, no SLA-boundary claims (blocked on the owner ce02/ce03 retune decision), no causal claim from the pattern alone.
 
 ## 5. Support vs owner decisions
 
-Support-side (delegated technical judgment, no owner input needed): protocol freezing, instrumentation readiness, boundary-term reporting, runner/sampler mechanics, offline analysis and audits.
+Support-side (delegated technical judgment): protocol freezing, instrumentation readiness, boundary-term reporting, runner/sampler mechanics, offline analysis, emulator characterization, mechanism-check execution.
 
-Owner decisions (research intent, not delegated): adopting or rejecting gate bands; adopting a queue_delay estimator pair; retuning ce02/ce03 so their named SLA boundaries are actually exercised; interpreting any model discrepancy as a paper claim.
+Owner decisions (research intent, not delegated): adopting or rejecting gate bands; adopting a queue_delay estimator pair; retuning ce02/ce03 so their named SLA boundaries are actually exercised; interpreting any model discrepancy as a paper claim; accepting the "sustained sag" reading of ce01.
 
 ## 6. Execution preconditions
 
-Any Mininet-side run of Conditions A/B requires a fresh scoped user approval (the five-run approval of 16:12 IST is fully consumed). Emulator-side characterization is unprivileged and can proceed offline once the protocol is frozen.
+Any Mininet-side run requires a fresh scoped user approval (the five-run approval of 16:12 IST is fully consumed). Emulator-side characterization is unprivileged and proceeds offline. The approval-ready Mininet scope is section 4 above with per-run checks identical in kind to the executed five-run scope (fresh hashes, preflight, no detached suite, output absence, per-run cleanup and s1 verification, stop-on-incompleteness).

@@ -1,0 +1,17 @@
+{
+  "scenario": "cross_engine_ce01_control_nosag_udp",
+  "required_metrics": {
+    "queue_delay_ms": {
+      "status": "unsupported",
+      "reason": "no per-packet queue delay on either engine: emulator has an aggregate occupancy/service drain estimate (env/sdwan_env.py:243-249); the Mininet residence-minus-base candidate (analysis/candidates/queue_delay_proxy.py) is UNVALIDATED (smoke: 28.0% negatives, reasons hypothesized, not established). Never emitted as an accepted queue_delay_ms."
+    },
+    "loss_frac": {
+      "status": "expressible"
+    },
+    "throughput_mbps": {
+      "status": "expressible"
+    }
+  },
+  "fail_closed": true,
+  "exit_code": 2
+}

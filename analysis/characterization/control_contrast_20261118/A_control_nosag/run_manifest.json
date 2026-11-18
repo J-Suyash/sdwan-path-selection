@@ -1,0 +1,121 @@
+{
+  "label": "raw_unvalidated_scaffolding",
+  "created_utc": "2026-11-18T11:28:18.154498+00:00",
+  "git_head": "129309db379c3088c2cb59ef31b9256bd52dd08c",
+  "scenario_path": "/home/sxtr/Projects/Major Project-instinct-recovery/testbed/scenarios/case_drafts/ce01_control_nosag.json",
+  "case_interpretation": "existing switch operating points; case names do not establish boundary coverage",
+  "scenario_sha256": "6e3c2fe6b4c1f9a6f903e2caff53977f2ada07cdefd5a374a0abcd506e030200",
+  "calibration_path": "/home/sxtr/Projects/Major Project-instinct-recovery/data/switching_calibration_v2.csv",
+  "seed_base": 0,
+  "repetitions": 5,
+  "event_step": 6,
+  "post_warmup_window_s": 9.0,
+  "full_window_s": 15.0,
+  "drain_enabled": true,
+  "load_stop_s": 14.0,
+  "start_path": "bb",
+  "windows": [
+    {
+      "run_id": "r00",
+      "full_offered_bytes": 105000000.0,
+      "full_delivered_bytes": 105000000.0,
+      "full_dropped_bytes": 0.0,
+      "post_offered_bytes": 60000000.0,
+      "post_delivered_bytes": 60000000.0,
+      "post_dropped_bytes": 0.0,
+      "end_residual_occupancy_bytes": 0.0,
+      "steps_run": 15,
+      "measurement_window_s": 15.0,
+      "drain_termination": "drained",
+      "drain_steps_used": 1
+    },
+    {
+      "run_id": "r01",
+      "full_offered_bytes": 105000000.0,
+      "full_delivered_bytes": 105000000.0,
+      "full_dropped_bytes": 0.0,
+      "post_offered_bytes": 60000000.0,
+      "post_delivered_bytes": 60000000.0,
+      "post_dropped_bytes": 0.0,
+      "end_residual_occupancy_bytes": 0.0,
+      "steps_run": 15,
+      "measurement_window_s": 15.0,
+      "drain_termination": "drained",
+      "drain_steps_used": 1
+    },
+    {
+      "run_id": "r02",
+      "full_offered_bytes": 105000000.0,
+      "full_delivered_bytes": 105000000.0,
+      "full_dropped_bytes": 0.0,
+      "post_offered_bytes": 60000000.0,
+      "post_delivered_bytes": 60000000.0,
+      "post_dropped_bytes": 0.0,
+      "end_residual_occupancy_bytes": 0.0,
+      "steps_run": 15,
+      "measurement_window_s": 15.0,
+      "drain_termination": "drained",
+      "drain_steps_used": 1
+    },
+    {
+      "run_id": "r03",
+      "full_offered_bytes": 105000000.0,
+      "full_delivered_bytes": 105000000.0,
+      "full_dropped_bytes": 0.0,
+      "post_offered_bytes": 60000000.0,
+      "post_delivered_bytes": 60000000.0,
+      "post_dropped_bytes": 0.0,
+      "end_residual_occupancy_bytes": 0.0,
+      "steps_run": 15,
+      "measurement_window_s": 15.0,
+      "drain_termination": "drained",
+      "drain_steps_used": 1
+    },
+    {
+      "run_id": "r04",
+      "full_offered_bytes": 105000000.0,
+      "full_delivered_bytes": 105000000.0,
+      "full_dropped_bytes": 0.0,
+      "post_offered_bytes": 60000000.0,
+      "post_delivered_bytes": 60000000.0,
+      "post_dropped_bytes": 0.0,
+      "end_residual_occupancy_bytes": 0.0,
+      "steps_run": 15,
+      "measurement_window_s": 15.0,
+      "drain_termination": "drained",
+      "drain_steps_used": 1
+    }
+  ],
+  "numeric_csv": "emulator_metrics.partial.csv",
+  "estimator_csv": null,
+  "capacity_convention": {
+    "scale_factor": 0.970873786407767,
+    "nominal_capacity_mbps": {
+      "bb": 200.0,
+      "five_g": 150.0,
+      "leo": 100.0
+    },
+    "matched_capacity_mbps": {
+      "bb": 194.1747572815534,
+      "five_g": 145.63106796116506,
+      "leo": 97.0873786407767
+    },
+    "event_capacity_scale_applied": true,
+    "applied": true,
+    "scope": "this setup only; working convention",
+    "basis": "P1 diagnostic 18 Nov 2026 (docs/cross_engine_p1_rate_diagnostic_results.md): qdisc counters 1442 B/pkt exact; service-slope and backlog-slope agreement with wire-length token accounting (exploratory, post-observation discriminators); no universal claim"
+  },
+  "limitations": [
+    "constant-series mode carries zero trace jitter; case jitter_ms has no emulator-side expression in this mode",
+    "emulator delay/jitter are per-step aggregates, not per-packet statistics; no estimator-level mapping is claimed",
+    "interruption_s is the calibrated switching-model effect; the validation plan expects a mismatch against the testbed (informative, kept out of the comparator CSV in emulator_informative.csv)",
+    "capacity events mutate the input series from the event step, mirroring the testbed tc rate change at the event point",
+    "numeric rows cover natively expressible metrics only, over the full-run window matching testbed/analyze.py (no warmup exclusion); coverage.json is the fail-closed record for everything else",
+    "delay units: testbed netem delay is one-way on a single link; constant_series rtt_ms = 2 * one_way_delay_ms so that the emulator 0.5 RTT factor reproduces the configured one-way delay",
+    "queue convention: testbed limit is netem/TBF max_queue_size in packets; matched buffer bytes = limit_packets * packet_bytes",
+    "capacity convention: matched capacities are scaled by packet_bytes/1442 (working convention for this setup, P1 exploratory evidence; see run_manifest.capacity_convention); nominal case values are in the scenario JSON",
+    "loss_frac comparability needs constant datagram size, an aligned full-run window, and boundary handling: bytes still queued at episode end are counted as neither delivered nor dropped here, so end_residual_occupancy_bytes is reported per run as the boundary term",
+    "delay/jitter estimator rows (emulator_estimator.csv) are per-step aggregate candidates, quality estimator_candidate_unvalidated; never comparator gate evidence; coverage.json keeps both metrics unsupported",
+    "drain phase is opt-in (--drain) until the owner adopts the D2 endpoint definition: load stops at duration_s, the episode ends when every queue holds less than one packet (termination 'drained') or at the 3x buffer/service bound ('bound_hit'), and the actual measurement window is recorded per run"
+  ]
+}

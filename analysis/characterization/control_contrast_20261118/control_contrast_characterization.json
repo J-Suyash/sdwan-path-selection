@@ -1,0 +1,88 @@
+{
+  "label": "raw_unvalidated_scaffolding",
+  "purpose": "emulator-only control/contrast characterization; diagnostic leads, never validation or acceptance",
+  "conditions": {
+    "A_control_nosag": {
+      "condition": "A_control_nosag",
+      "scenario_path": "testbed/scenarios/case_drafts/ce01_control_nosag.json",
+      "scenario_sha256": "6e3c2fe6b4c1f9a6f903e2caff53977f2ada07cdefd5a374a0abcd506e030200",
+      "events": [],
+      "exit_code": 2,
+      "load_stop_s": 14.0,
+      "max_episode_s": 16,
+      "nominal_capacity_mbps": {
+        "bb": 200.0,
+        "five_g": 150.0,
+        "leo": 100.0
+      },
+      "matched_payload_capacity_mbps": {
+        "bb": 194.1747572815534,
+        "five_g": 145.63106796116506,
+        "leo": 97.0873786407767
+      },
+      "status": "engineering_debug_only",
+      "emulator_metrics.partial.csv": "case,metric,value,estimator,quality,run_id,seed\ncross_engine_ce01_control_nosag_udp,loss_frac,0.0,fluid_queue_full_run_window,expressible,r00,0\ncross_engine_ce01_control_nosag_udp,throughput_mbps,56.0,fluid_queue_full_run_window,expressible,r00,0\ncross_engine_ce01_control_nosag_udp,loss_frac,0.0,fluid_queue_full_run_window,expressible,r01,1\ncross_engine_ce01_control_nosag_udp,throughput_mbps,56.0,fluid_queue_full_run_window,expressible,r01,1\ncross_engine_ce01_control_nosag_udp,loss_frac,0.0,fluid_queue_full_run_window,expressible,r02,2\ncross_engine_ce01_control_nosag_udp,throughput_mbps,56.0,fluid_queue_full_run_window,expressible,r02,2\ncross_engine_ce01_control_nosag_udp,loss_frac,0.0,fluid_queue_full_run_window,expressible,r03,3\ncross_engine_ce01_control_nosag_udp,throughput_mbps,56.0,fluid_queue_full_run_window,expressible,r03,3\ncross_engine_ce01_control_nosag_udp,loss_frac,0.0,fluid_queue_full_run_window,expressible,r04,4\ncross_engine_ce01_control_nosag_udp,throughput_mbps,56.0,fluid_queue_full_run_window,expressible,r04,4\n",
+      "coverage": {
+        "scenario": "cross_engine_ce01_control_nosag_udp",
+        "required_metrics": {
+          "queue_delay_ms": {
+            "status": "unsupported",
+            "reason": "no per-packet queue delay on either engine: emulator has an aggregate occupancy/service drain estimate (env/sdwan_env.py:243-249); the Mininet residence-minus-base candidate (analysis/candidates/queue_delay_proxy.py) is UNVALIDATED (smoke: 28.0% negatives, reasons hypothesized, not established). Never emitted as an accepted queue_delay_ms."
+          },
+          "loss_frac": {
+            "status": "expressible"
+          },
+          "throughput_mbps": {
+            "status": "expressible"
+          }
+        },
+        "fail_closed": true,
+        "exit_code": 2
+      }
+    },
+    "B_contrast_sag": {
+      "condition": "B_contrast_sag",
+      "scenario_path": "testbed/scenarios/case_drafts/ce01.json",
+      "scenario_sha256": "f4944ae2e2db1c66c831b3042df04059702d33d9bf5138c3852ad41003e741e8",
+      "events": [
+        {
+          "workload": "bulk_udp_60",
+          "path": "five_g",
+          "capacity_mbps": 30.0
+        }
+      ],
+      "exit_code": 2,
+      "load_stop_s": 14.0,
+      "max_episode_s": 19,
+      "nominal_capacity_mbps": {
+        "bb": 200.0,
+        "five_g": 150.0,
+        "leo": 100.0
+      },
+      "matched_payload_capacity_mbps": {
+        "bb": 194.1747572815534,
+        "five_g": 145.63106796116506,
+        "leo": 97.0873786407767
+      },
+      "status": "engineering_debug_only",
+      "emulator_metrics.partial.csv": "case,metric,value,estimator,quality,run_id,seed\ncross_engine_ce01_queue_saturation_udp,loss_frac,0.25236939435968564,fluid_queue_full_run_window,expressible,r00,0\ncross_engine_ce01_queue_saturation_udp,throughput_mbps,39.25060679611651,fluid_queue_full_run_window,expressible,r00,0\ncross_engine_ce01_queue_saturation_udp,loss_frac,0.25236939435968564,fluid_queue_full_run_window,expressible,r01,1\ncross_engine_ce01_queue_saturation_udp,throughput_mbps,39.25060679611651,fluid_queue_full_run_window,expressible,r01,1\ncross_engine_ce01_queue_saturation_udp,loss_frac,0.25236939435968564,fluid_queue_full_run_window,expressible,r02,2\ncross_engine_ce01_queue_saturation_udp,throughput_mbps,39.25060679611651,fluid_queue_full_run_window,expressible,r02,2\ncross_engine_ce01_queue_saturation_udp,loss_frac,0.25236939435968564,fluid_queue_full_run_window,expressible,r03,3\ncross_engine_ce01_queue_saturation_udp,throughput_mbps,39.25060679611651,fluid_queue_full_run_window,expressible,r03,3\ncross_engine_ce01_queue_saturation_udp,loss_frac,0.25236939435968564,fluid_queue_full_run_window,expressible,r04,4\ncross_engine_ce01_queue_saturation_udp,throughput_mbps,39.25060679611651,fluid_queue_full_run_window,expressible,r04,4\n",
+      "coverage": {
+        "scenario": "cross_engine_ce01_queue_saturation_udp",
+        "required_metrics": {
+          "queue_delay_ms": {
+            "status": "unsupported",
+            "reason": "no per-packet queue delay on either engine: emulator has an aggregate occupancy/service drain estimate (env/sdwan_env.py:243-249); the Mininet residence-minus-base candidate (analysis/candidates/queue_delay_proxy.py) is UNVALIDATED (smoke: 28.0% negatives, reasons hypothesized, not established). Never emitted as an accepted queue_delay_ms."
+          },
+          "loss_frac": {
+            "status": "expressible"
+          },
+          "throughput_mbps": {
+            "status": "expressible"
+          }
+        },
+        "fail_closed": true,
+        "exit_code": 2
+      }
+    }
+  }
+}
