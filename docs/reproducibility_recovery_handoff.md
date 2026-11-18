@@ -595,3 +595,11 @@ Instrument findings from that run (raw, unvalidated, single rep):
 - Correction of earlier framing: the project's RL platform is a fast FLUID aggregate model (proposal M1: 1-hour episode < 4 s), coarser than both anchors' packet-level platforms; cross-engine validation is necessary diligence, not methodological superiority. "Methodologically stronger" wording retracted.
 - Verified original objective from the user-authored proposal docx: contribution claims are offline-to-online safe RL from incumbent logs + budgeted SLA-rate/switch-rate CMDP with cost-per-GB objective (Sec 3.1); M2 = reproduce the base paper's qualitative filter effect; M4 = testbed confirms ranking of top methods.
 - Adequacy conclusion (recommendation, not adoption): the validation stage is supporting evidence for platform fidelity under the M2/M4 gates; the downstream headline (filter-vs-no-filter compliance ranking under high load) is computed from per-class delay/loss threshold checks (Bista Table I), which the recommended scope covers at quantity/estimator level; reordering stays a Mininet diagnostic. Scope adoption still pending the owner's answer.
+
+## 18 Nov 2026 ~15:00 IST - Stage-A candidate series extraction (7439363)
+
+- Harness now extracts per-step delay/jitter series (info["per_class"][cls], env/sdwan_env.py:293-302) into emulator_estimator.csv, quality estimator_candidate_unvalidated; coverage.json keeps delay_median_ms/jitter_mean_ms unsupported, exit 2 fail-closed and comparator refusal unchanged.
+- run_manifest.json gains estimator_csv, per-window end_residual_occupancy_bytes (loss_frac boundary term), and capacity_convention_proposed (scale 1400/1442, applied=false; verified qdisc 1442 B/packet counters; token-length basis not separately rate-validated).
+- Plan doc (d2b7a8a + this): corrected to verified 1442 accounting (was wrong 1428 L3 claim), freeze-then-evaluate Stage C, loss comparability conditions, no ad-hoc uncertainty formula.
+- Suite: 212 passed / 0 failed in 159.6s at 7439363.
+- Held: four-case execution, scope adoption, privileged batch (needs scoped approval).
