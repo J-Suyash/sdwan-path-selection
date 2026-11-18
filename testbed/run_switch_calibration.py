@@ -203,6 +203,9 @@ def cadence_sampler(t0: float, stop_event: "threading.Event", samples: list[dict
     Runs in a daemon thread so during-send coverage does not depend on
     where the main thread happens to be waiting. Each sample's own
     monotonic timestamp is its truth; the label is its nominal tick.
+    Cadence ticks are best-effort under host load: each sample reports
+    its lateness against its nominal tick, and a starved thread shows up
+    as missing cadence labels, never as fabricated on-time ticks.
     """
     k = 1
     while True:
@@ -211,7 +214,10 @@ def cadence_sampler(t0: float, stop_event: "threading.Event", samples: list[dict
         if delay > 0 and stop_event.wait(delay):
             return
         with lock:
-            samples.append(record_clock_sample(f"cadence_{k * cadence_s:02.0f}s"))
+            sample = record_clock_sample(f"cadence_{k * cadence_s:02.0f}s")
+            sample["nominal_tick_offset_s"] = k * cadence_s
+            sample["cadence_lateness_s"] = sample["monotonic_s"] - target
+            samples.append(sample)
         k += 1
         if stop_event.is_set():
             return
@@ -226,7 +232,9 @@ def write_clock_samples(path: Path, samples: list[dict]) -> None:
             "meaning": (
                 "sampled-clock envelope only; samples can expose observed "
                 "steps/nonlinearity but cannot prove none occurred between "
-                "samples"
+                "samples; cadence ticks are best-effort under load with "
+                "per-sample lateness reported, and absent cadence labels "
+                "mark starved ticks rather than on-time sampling"
             ),
         },
     )
@@ -438,60 +446,66 @@ def run_one(
             daemon=True,
         )
         sampler.start()
-        time.sleep(max(0.0, t0 + workload.warmup_s - time.monotonic()))
-    else:
-        time.sleep(workload.warmup_s)
-    qdisc_before = testbed.qdisc_stats(start_path)
-    qdisc_before_path.write_text(qdisc_before, encoding="utf-8")
-    switch_started = time.monotonic()
-    if is_switch:
-        testbed.modify_route(event, end_path)
-    else:
-        testbed.set_path_capacity(end_path, event.capacity_mbps)
-    route_update_s = time.monotonic() - switch_started
-    # Epoch of the event point: backlog-series and pcap timestamps are
-    # epoch-based, so backlog-rise evidence must anchor to this, not to
-    # assumed wall-clock offsets.
-    event_applied_epoch_s = time.time()
-    remaining = max(0.0, workload.duration_s - workload.warmup_s)
-    if matched_drain:
-        inspections = []
-        for offset in inspection_offsets(window_spec):
-            target = t0 + offset
-            # Cadence samples come from the background sampler thread;
-            # this loop only waits for the inspection point.
-            time.sleep(max(0.0, target - time.monotonic()))
-            clock_samples.append(record_clock_sample(f"at_t0_plus_{offset:02d}s"))
-            sample_started = time.monotonic()
-            raw_qdiscs = {p: testbed.qdisc_stats(p) for p in scenario.paths}
-            sample_ended = time.monotonic()
-            # Direct endpoint-domain evidence around the actual t1 event;
-            # interpolation is not substituted for this bracket.
-            clock_samples.append(record_clock_sample(f"after_inspection_{offset:02d}s"))
-            snapshot = queue_snapshot(raw_qdiscs)
-            write_json(output_dir / f"drain_qdisc_{offset:02d}.json", raw_qdiscs)
-            inspections.append({"nominal_offset_s": offset, "sample_started_monotonic_s": sample_started,
-                                "sample_ended_monotonic_s": sample_ended, **snapshot})
-            if snapshot["drained"]:
-                break
-        if not inspections:
-            raise ValueError("matched drain has no inspection window")
-        t1 = inspections[-1]["sample_ended_monotonic_s"]
-        matched_endpoint = {"spec": window_spec, "inspections": inspections,
-                            "t0_monotonic_s": t0, "t1_monotonic_s": t1,
-                            "drain_termination": "drained" if snapshot["drained"] else "bound_hit",
-                            "actual_event_offset_s": switch_started - t0,
-                            "host_sampling_lateness_s": t1 - (t0 + inspections[-1]["nominal_offset_s"]),
-                            "in_flight_caveat": "zero qdisc backlog is not proof that every dequeued packet reached the application"}
-        clock_samples.append(record_clock_sample("after_t1"))
-        stop_sampling.set()
-        sampler.join(timeout=2.0)
-        # Collect late arrivals separately, then filter the matched-window
-        # summary at t1. This grace is NOT added to its denominator.
-        time.sleep(0.5)
-        write_clock_samples(output_dir / "clock_samples.json", clock_samples)
-    else:
-        time.sleep(remaining + 2.5)
+    try:
+        if matched_drain:
+            time.sleep(max(0.0, t0 + workload.warmup_s - time.monotonic()))
+        else:
+            time.sleep(workload.warmup_s)
+        qdisc_before = testbed.qdisc_stats(start_path)
+        qdisc_before_path.write_text(qdisc_before, encoding="utf-8")
+        switch_started = time.monotonic()
+        if is_switch:
+            testbed.modify_route(event, end_path)
+        else:
+            testbed.set_path_capacity(end_path, event.capacity_mbps)
+        route_update_s = time.monotonic() - switch_started
+        # Epoch of the event point: backlog-series and pcap timestamps are
+        # epoch-based, so backlog-rise evidence must anchor to this, not to
+        # assumed wall-clock offsets.
+        event_applied_epoch_s = time.time()
+        remaining = max(0.0, workload.duration_s - workload.warmup_s)
+        if matched_drain:
+            inspections = []
+            for offset in inspection_offsets(window_spec):
+                target = t0 + offset
+                # Cadence samples come from the background sampler thread;
+                # this loop only waits for the inspection point.
+                time.sleep(max(0.0, target - time.monotonic()))
+                clock_samples.append(record_clock_sample(f"at_t0_plus_{offset:02d}s"))
+                sample_started = time.monotonic()
+                raw_qdiscs = {p: testbed.qdisc_stats(p) for p in scenario.paths}
+                sample_ended = time.monotonic()
+                # Direct endpoint-domain evidence around the actual t1 event;
+                # interpolation is not substituted for this bracket.
+                clock_samples.append(record_clock_sample(f"after_inspection_{offset:02d}s"))
+                snapshot = queue_snapshot(raw_qdiscs)
+                write_json(output_dir / f"drain_qdisc_{offset:02d}.json", raw_qdiscs)
+                inspections.append({"nominal_offset_s": offset, "sample_started_monotonic_s": sample_started,
+                                    "sample_ended_monotonic_s": sample_ended, **snapshot})
+                if snapshot["drained"]:
+                    break
+            if not inspections:
+                raise ValueError("matched drain has no inspection window")
+            t1 = inspections[-1]["sample_ended_monotonic_s"]
+            matched_endpoint = {"spec": window_spec, "inspections": inspections,
+                                "t0_monotonic_s": t0, "t1_monotonic_s": t1,
+                                "drain_termination": "drained" if snapshot["drained"] else "bound_hit",
+                                "actual_event_offset_s": switch_started - t0,
+                                "host_sampling_lateness_s": t1 - (t0 + inspections[-1]["nominal_offset_s"]),
+                                "in_flight_caveat": "zero qdisc backlog is not proof that every dequeued packet reached the application"}
+            clock_samples.append(record_clock_sample("after_t1"))
+            # Collect late arrivals separately, then filter the matched-window
+            # summary at t1. This grace is NOT added to its denominator.
+            time.sleep(0.5)
+            write_clock_samples(output_dir / "clock_samples.json", clock_samples)
+        else:
+            time.sleep(remaining + 2.5)
+    finally:
+        if matched_drain:
+            # Stop the cadence sampler on every exit path: normal
+            # completion, bound hit, or an exception mid-run.
+            stop_sampling.set()
+            sampler.join(timeout=2.0)
     qdisc_after = testbed.qdisc_stats(end_path)
     qdisc_after_path.write_text(qdisc_after, encoding="utf-8")
 

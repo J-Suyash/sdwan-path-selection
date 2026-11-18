@@ -2,6 +2,8 @@
 import threading
 import time
 
+import pytest
+
 from testbed.run_switch_calibration import cadence_sampler
 
 
@@ -27,6 +29,10 @@ def test_records_ticks_with_honest_timestamps():
         assert sample["sampling_bracket_s"] >= 0.0
         assert sample["epoch_before_s"] > 1e9  # wall-clock epoch, not monotonic
         assert sample["monotonic_s"] >= t0
+        assert "nominal_tick_offset_s" in sample
+        assert abs(sample["cadence_lateness_s"]) < 0.2
+        assert sample["cadence_lateness_s"] == pytest.approx(
+            sample["monotonic_s"] - (t0 + sample["nominal_tick_offset_s"]), abs=1e-9)
     monotonics = [s["monotonic_s"] for s in samples]
     assert monotonics == sorted(monotonics)
     # First tick lands near t0 + cadence, not at t0.
