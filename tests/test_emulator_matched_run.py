@@ -286,3 +286,74 @@ def test_matched_config_uses_case_values(tmp_path):
     assert cfg.allow_synthetic_traces is False
     assert cfg.fixed_load_mbps["bulk"] == 10.0
     assert cfg.fixed_load_mbps["voice"] == 0.0
+
+
+def test_estimator_candidate_rows_emitted_but_never_gate(tmp_path):
+    scenario = _write_scenario(tmp_path, rate_mbps=10.0, capacity_mbps=100.0)
+    out = tmp_path / "out"
+    code = run_case(
+        scenario,
+        out_dir=out,
+        required_metrics=["loss_frac", "delay_median_ms", "jitter_mean_ms"],
+    )
+    # Coverage gate unchanged: delay/jitter stay unsupported, exit 2.
+    assert code == 2
+    assert not (out / "emulator_metrics.csv").exists()
+    partial = _read_csv(out / "emulator_metrics.partial.csv")
+    assert {row["metric"] for row in partial} == {"loss_frac"}
+    coverage = json.loads((out / "coverage.json").read_text(encoding="utf-8"))
+    assert coverage["required_metrics"]["delay_median_ms"]["status"] == "unsupported"
+    assert coverage["required_metrics"]["jitter_mean_ms"]["status"] == "unsupported"
+    rows = _read_csv(out / "emulator_estimator.csv")
+    assert {row["metric"] for row in rows} == {
+        "delay_median_ms",
+        "jitter_mean_ms",
+    }
+    for row in rows:
+        assert row["quality"] == "estimator_candidate_unvalidated"
+        assert row["n_steps"] == "4"
+        assert row["n_finite"] == "4"
+    # Constant rtt 20 ms one-way factor 0.5, under capacity (no queue
+    # drain): per-step delay is exactly 10.0 ms; constant series carries
+    # zero trace jitter and no disruption, so jitter is exactly 0.0.
+    for row in rows:
+        if row["metric"] == "delay_median_ms":
+            assert float(row["value"]) == pytest.approx(10.0)
+        else:
+            assert float(row["value"]) == pytest.approx(0.0)
+    manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["estimator_csv"] == "emulator_estimator.csv"
+    for window in manifest["windows"]:
+        assert window["end_residual_occupancy_bytes"] == 0.0
+    proposed = manifest["capacity_convention_proposed"]
+    assert proposed["applied"] is False
+    assert proposed["scale_factor"] == pytest.approx(1400.0 / 1442.0)
+
+
+def test_estimator_candidate_saturation_and_residual_boundary(tmp_path):
+    scenario = _write_scenario(tmp_path, rate_mbps=200.0, capacity_mbps=100.0)
+    out = tmp_path / "out"
+    code = run_case(
+        scenario, out_dir=out, required_metrics=["delay_median_ms"]
+    )
+    assert code == 2
+    rows = _read_csv(out / "emulator_estimator.csv")
+    assert len(rows) == 2  # 2 reps
+    for row in rows:
+        # Queue drain adds to the 10 ms base delay under saturation.
+        assert float(row["value"]) > 10.0
+    manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
+    for window in manifest["windows"]:
+        # Saturated queue stays non-empty at episode end: the boundary
+        # term is nonzero and reported.
+        assert window["end_residual_occupancy_bytes"] > 0.0
+
+
+def test_no_estimator_file_when_not_required(tmp_path):
+    scenario = _write_scenario(tmp_path)
+    out = tmp_path / "out"
+    code = run_case(scenario, out_dir=out, required_metrics=["loss_frac"])
+    assert code == 0
+    assert not (out / "emulator_estimator.csv").exists()
+    manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["estimator_csv"] is None

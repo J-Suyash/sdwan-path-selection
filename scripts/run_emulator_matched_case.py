@@ -34,7 +34,11 @@ metrics. A partial result cannot be passed onward as complete:
   per-packet run statistics; the emulator exposes per-decision-step
   aggregates (0.5 * trace RTT + occupancy/service drain estimate,
   env/sdwan_env.py:243-268). An estimator-level mapping is an owner
-  definition decision.
+  definition decision. The harness extracts the per-step series as
+  CANDIDATE estimator rows in ``emulator_estimator.csv`` (quality
+  ``estimator_candidate_unvalidated``) so the owner can review a
+  concrete mapping; both metrics stay ``unsupported`` in coverage.json
+  and the rows are never comparator gate evidence.
 
 Input-unit reconciliation (verified against testbed/sdwan_topology.py and
 testbed/analyze.py): the testbed applies ``one_way_delay_ms`` as a netem
@@ -67,11 +71,13 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import re
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from statistics import fmean, median
 
 from env.config import SDWanConfig
 from env.sdwan_env import SDWanEnv
@@ -79,18 +85,29 @@ from testbed.scenario import CapacityEvent, SwitchEvent, load_scenario
 
 EXPRESSIBLE_METRICS = ("loss_frac", "throughput_mbps", "interruption_s")
 
+# Metrics with a per-step aggregate series the harness extracts as
+# CANDIDATE estimator rows (emulator_estimator.csv). They stay
+# unsupported in coverage.json and are never comparator gate evidence.
+ESTIMATOR_CANDIDATE_METRICS = ("delay_median_ms", "jitter_mean_ms")
+ESTIMATOR_QUALITY = "estimator_candidate_unvalidated"
+
 UNSUPPORTED_REASONS = {
     "delay_median_ms": (
         "runner metric is a per-packet run statistic; the fluid emulator "
         "exposes per-decision-step aggregate delay (0.5*trace RTT + "
         "occupancy/service drain estimate, env/sdwan_env.py:243-260). "
-        "Estimator-level mapping is an owner definition decision."
+        "Estimator-level mapping is an owner definition decision; "
+        "candidate per-step series are extracted to "
+        "emulator_estimator.csv (quality estimator_candidate_unvalidated), "
+        "never gate evidence."
     ),
     "jitter_mean_ms": (
         "per-packet run statistic vs per-step aggregate jitter "
         "(|delta RTT|*0.5 + 0.2*drain + calibrated reorder input, "
         "env/sdwan_env.py:261-270); constant-series mode carries zero "
-        "trace jitter. Owner definition decision."
+        "trace jitter. Owner definition decision; candidate per-step "
+        "series are extracted to emulator_estimator.csv (quality "
+        "estimator_candidate_unvalidated), never gate evidence."
     ),
     "queue_delay_ms": (
         "no per-packet queue delay on either engine: emulator has an "
@@ -126,6 +143,21 @@ LIMITATIONS = [
     "0.5 RTT factor reproduces the configured one-way delay",
     "queue convention: testbed limit is netem/TBF max_queue_size in "
     "packets; matched buffer bytes = limit_packets * packet_bytes",
+    "capacity is applied at nominal case values; the proposed "
+    "payload-fraction convention (scale by packet_bytes/1442, from "
+    "verified qdisc counters accounting 1442 B per 1400 B datagram on "
+    "this setup) is recorded in "
+    "run_manifest.capacity_convention_proposed and is NOT applied until "
+    "the owner adopts it",
+    "loss_frac comparability needs constant datagram size, an aligned "
+    "full-run window, and boundary handling: bytes still queued at "
+    "episode end are counted as neither delivered nor dropped here, so "
+    "end_residual_occupancy_bytes is reported per run as the boundary "
+    "term",
+    "delay/jitter estimator rows (emulator_estimator.csv) are per-step "
+    "aggregate candidates, quality estimator_candidate_unvalidated; "
+    "never comparator gate evidence; coverage.json keeps both metrics "
+    "unsupported",
 ]
 
 
@@ -270,6 +302,7 @@ def run_case(
 
     rows: list[dict[str, str]] = []
     informative_rows: list[dict[str, str]] = []
+    estimator_rows: list[dict[str, str]] = []
     windows: list[dict[str, float]] = []
     for rep in range(scenario.repetitions):
         run_seed = seed + rep
@@ -285,6 +318,12 @@ def run_case(
         totals = {"full": [0.0, 0.0, 0.0], "post": [0.0, 0.0, 0.0]}
         interruption_observed: float | None = None
         interruption_calibrated = False
+        delay_series: list[float] = []
+        jitter_series: list[float] = []
+        end_residual = 0.0
+        collect_estimators = any(
+            m in required_metrics for m in ESTIMATOR_CANDIDATE_METRICS
+        )
         for t in range(cfg.episode_steps):
             if t == event_step:
                 for event in capacity_events:
@@ -297,6 +336,18 @@ def run_case(
                 effect = env.switch_effects[wl.flow_type]
                 interruption_observed = effect.interruption_s
                 interruption_calibrated = effect.calibrated
+            if collect_estimators:
+                qos = info["per_class"].get(wl.flow_type) or {}
+                step_delay = float(qos.get("delay", float("nan")))
+                step_jitter = float(qos.get("jitter", float("nan")))
+                if math.isfinite(step_delay):
+                    delay_series.append(step_delay)
+                if math.isfinite(step_jitter):
+                    jitter_series.append(step_jitter)
+            if t == cfg.episode_steps - 1:
+                end_residual = sum(
+                    q["occupancy_bytes"] for q in info["queue"].values()
+                )
             offered = sum(q["offered_bytes"] for q in info["queue"].values())
             delivered = sum(q["delivered_bytes"] for q in info["queue"].values())
             dropped = sum(q["dropped_bytes"] for q in info["queue"].values())
@@ -317,6 +368,10 @@ def run_case(
                 "post_offered_bytes": totals["post"][0],
                 "post_delivered_bytes": totals["post"][1],
                 "post_dropped_bytes": totals["post"][2],
+                # Boundary term for the loss_frac comparability
+                # conditions: bytes still queued at episode end are
+                # neither delivered nor dropped in this accounting.
+                "end_residual_occupancy_bytes": end_residual,
             }
         )
         # Numeric comparator rows use the FULL-RUN window: the runner
@@ -370,6 +425,40 @@ def run_case(
                     "seed": str(run_seed),
                 }
             )
+        # Candidate estimator rows: per-step aggregate statistics,
+        # unvalidated, never comparator gate evidence.
+        if "delay_median_ms" in required_metrics:
+            estimator_rows.append(
+                {
+                    "case": scenario.name,
+                    "metric": "delay_median_ms",
+                    "value": repr(
+                        median(delay_series) if delay_series else float("nan")
+                    ),
+                    "estimator": "per_step_aggregate_median_over_steps",
+                    "quality": ESTIMATOR_QUALITY,
+                    "n_steps": str(cfg.episode_steps),
+                    "n_finite": str(len(delay_series)),
+                    "run_id": run_id,
+                    "seed": str(run_seed),
+                }
+            )
+        if "jitter_mean_ms" in required_metrics:
+            estimator_rows.append(
+                {
+                    "case": scenario.name,
+                    "metric": "jitter_mean_ms",
+                    "value": repr(
+                        fmean(jitter_series) if jitter_series else float("nan")
+                    ),
+                    "estimator": "per_step_aggregate_mean_over_steps",
+                    "quality": ESTIMATOR_QUALITY,
+                    "n_steps": str(cfg.episode_steps),
+                    "n_finite": str(len(jitter_series)),
+                    "run_id": run_id,
+                    "seed": str(run_seed),
+                }
+            )
 
     exit_code = 0 if all(
         coverage[m]["status"] == "expressible" for m in required_metrics
@@ -398,6 +487,26 @@ def run_case(
             )
             writer.writeheader()
             writer.writerows(rows)
+        estimator_name = None
+        if estimator_rows:
+            estimator_name = "emulator_estimator.csv"
+            with (out / estimator_name).open("w", newline="") as fh:
+                writer = csv.DictWriter(
+                    fh,
+                    fieldnames=[
+                        "case",
+                        "metric",
+                        "value",
+                        "estimator",
+                        "quality",
+                        "n_steps",
+                        "n_finite",
+                        "run_id",
+                        "seed",
+                    ],
+                )
+                writer.writeheader()
+                writer.writerows(estimator_rows)
         if informative_rows:
             with (out / "emulator_informative.csv").open("w", newline="") as fh:
                 writer = csv.DictWriter(
@@ -449,6 +558,19 @@ def run_case(
                     "start_path": start_path,
                     "windows": windows,
                     "numeric_csv": metrics_name,
+                    "estimator_csv": estimator_name,
+                    "capacity_convention_proposed": {
+                        "scale_factor": wl.packet_bytes / 1442.0,
+                        "applied": False,
+                        "basis": (
+                            "verified qdisc counters account 1442 B per "
+                            "1400 B datagram on this setup (tbf/netem Sent "
+                            "and backlog exact multiples of 1442); the tbf "
+                            "token-consumption length basis is assumed the "
+                            "same as bstats and is NOT separately "
+                            "rate-validated"
+                        ),
+                    },
                     "limitations": LIMITATIONS,
                 },
                 indent=2,

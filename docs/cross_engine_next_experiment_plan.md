@@ -94,8 +94,9 @@ brought.
 Stage C (unprivileged analysis), freeze-then-evaluate: two separated
 phases. Calibration phase (within-engine only): runner-side
 repeatability spread from the raw corpus and emulator-side seed spread
-from Stage A repetitions, plus an explicit estimator-uncertainty budget
-for the estimator-level rows. Comparison rules and bands are derived
+from Stage A repetitions, plus an estimator-uncertainty treatment for
+the estimator-level rows that is defined with explicit statistical
+justification before freeze - no ad-hoc formula. Comparison rules and bands are derived
 from these within-engine sources alone and are FROZEN before any
 cross-engine evaluation. Evaluation phase (held-out): matched
 cross-engine discrepancies are computed on runs that played no part in
