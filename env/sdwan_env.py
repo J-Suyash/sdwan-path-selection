@@ -47,6 +47,18 @@ class SDWanEnv(gymnasium.Env):
         self.trace_window_start = {}
         self.trace_provenance = {}
         for underlay in self.cfg.underlays:
+            if self.cfg.constant_series is not None:
+                spec = self.cfg.constant_series[underlay]
+                steps = self.cfg.episode_steps
+                self.series[underlay] = {
+                    "rtt_ms": np.full(steps, float(spec["rtt_ms"])),
+                    "loss": np.full(steps, float(spec["loss"])),
+                    "capacity": np.full(steps, float(spec["capacity_mbps"])),
+                    "up": np.ones(steps, dtype=bool),
+                }
+                self.trace_provenance[underlay] = "constant-matched"
+                self.trace_window_start[underlay] = "constant-matched"
+                continue
             source = self.cfg.underlay_source[underlay]
             try:
                 df = load_source_df(self.cfg.data_root, source)
@@ -87,6 +99,8 @@ class SDWanEnv(gymnasium.Env):
         self.workload.set_regime(self.cfg.workload_regime)
         initial = self.workload.advance(0.0, 0.0)
         self.load = dict(initial.offered_mbps)
+        if self.cfg.fixed_load_mbps is not None:
+            self.load = dict(self.cfg.fixed_load_mbps)
         self.assignment = {c: self.cfg.underlays[0] for c in self.cfg.classes}
         self.seconds_since_switch = {c: 0.0 for c in self.cfg.classes}
         self.switch_effects = {c: SwitchEffect() for c in self.cfg.classes}
@@ -191,6 +205,8 @@ class SDWanEnv(gymnasium.Env):
             self.t * self.cfg.decision_interval_s, self.cfg.decision_interval_s
         )
         self.load = dict(snapshot.offered_mbps)
+        if self.cfg.fixed_load_mbps is not None:
+            self.load = dict(self.cfg.fixed_load_mbps)
         self.workload_snapshot = snapshot
 
     def _update_queues(self, idx: int) -> None:

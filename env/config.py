@@ -79,6 +79,17 @@ class SDWanConfig:
     queue_discipline: str = "fifo-fluid"
     transport_approximation: str = "fluid-rate-v1"
 
+    # Matched-run harness inputs (cross-engine scaffolding). These change
+    # INPUTS ONLY: the fluid queue, switching model and workload model are
+    # untouched. constant_series replaces trace loading with fixed
+    # per-underlay conditions (rtt_ms / loss fraction / capacity_mbps) so a
+    # matched case can pin the values in docs/testbed_match.md; provenance
+    # is reported as "constant-matched". fixed_load_mbps replaces the
+    # hierarchical WorkloadGenerator's offered rates with fixed per-class
+    # rates. Neither is set by any default experiment.
+    constant_series: dict[str, dict[str, float]] | None = None
+    fixed_load_mbps: dict[str, float] | None = None
+
     # No switching transient is assumed without measured calibration rows.
     # See data/switching_calibration_template.csv and docs/workload_model_spec.md.
     switching_calibration_path: str | None = None
@@ -136,6 +147,37 @@ class SDWanConfig:
                 if size <= 0:
                     raise ValueError(
                         f"queue_buffer_bytes[{underlay!r}] must be positive"
+                    )
+        if self.constant_series is not None:
+            missing = set(self.underlays) - set(self.constant_series)
+            if missing:
+                raise ValueError(
+                    f"constant_series missing underlays: {sorted(missing)}"
+                )
+            for underlay, spec in self.constant_series.items():
+                for key in ("rtt_ms", "loss", "capacity_mbps"):
+                    if key not in spec:
+                        raise ValueError(
+                            f"constant_series[{underlay!r}] missing {key!r}"
+                        )
+                if spec["rtt_ms"] < 0 or spec["capacity_mbps"] <= 0:
+                    raise ValueError(
+                        f"constant_series[{underlay!r}] rtt/capacity invalid"
+                    )
+                if not 0.0 <= spec["loss"] <= 1.0:
+                    raise ValueError(
+                        f"constant_series[{underlay!r}] loss must be in [0, 1]"
+                    )
+        if self.fixed_load_mbps is not None:
+            missing = set(self.classes) - set(self.fixed_load_mbps)
+            if missing:
+                raise ValueError(
+                    f"fixed_load_mbps missing classes: {sorted(missing)}"
+                )
+            for cls, rate in self.fixed_load_mbps.items():
+                if rate < 0:
+                    raise ValueError(
+                        f"fixed_load_mbps[{cls!r}] must be non-negative"
                     )
         if not 0 < self.oneway_delay_factor <= 1:
             raise ValueError("oneway_delay_factor must be in (0, 1]")
