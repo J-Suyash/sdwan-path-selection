@@ -211,7 +211,7 @@ def matched_config(
             if isinstance(e, CapacityEvent)
         ]
         min_capacity = min(c for c in capacities if c > 0)
-        drain_bound_s = 3.0 * max_buffer / (min_capacity * 1e6 / 8.0)
+        drain_bound_s = 3.0 * max_buffer / (min_capacity * payload_fraction * 1e6 / 8.0)
         episode_seconds = math.ceil(wl.duration_s + drain_bound_s)
         load_stop_s = float(wl.duration_s)
     return SDWanConfig(
@@ -415,7 +415,7 @@ def run_case(
             drain_termination = "bound_hit"
             drain_steps_used = steps_run - stop_step
 
-        post_s = (cfg.episode_steps - event_step) * cfg.decision_interval_s
+        post_s = max(0, steps_run - event_step) * cfg.decision_interval_s
         full_s = steps_run * cfg.decision_interval_s
         windows.append(
             {
@@ -499,7 +499,7 @@ def run_case(
                     ),
                     "estimator": "per_step_aggregate_median_over_steps",
                     "quality": ESTIMATOR_QUALITY,
-                    "n_steps": str(cfg.episode_steps),
+                    "n_steps": str(steps_run),
                     "n_finite": str(len(delay_series)),
                     "run_id": run_id,
                     "seed": str(run_seed),
@@ -515,7 +515,7 @@ def run_case(
                     ),
                     "estimator": "per_step_aggregate_mean_over_steps",
                     "quality": ESTIMATOR_QUALITY,
-                    "n_steps": str(cfg.episode_steps),
+                    "n_steps": str(steps_run),
                     "n_finite": str(len(jitter_series)),
                     "run_id": run_id,
                     "seed": str(run_seed),
@@ -625,6 +625,9 @@ def run_case(
                     "estimator_csv": estimator_name,
                     "capacity_convention": {
                         "scale_factor": wl.packet_bytes / 1442.0,
+                        "nominal_capacity_mbps": {p: spec.capacity_mbps for p, spec in scenario.paths.items()},
+                        "matched_capacity_mbps": dict(cfg.cap_mbps),
+                        "event_capacity_scale_applied": True,
                         "applied": True,
                         "scope": "this setup only; working convention",
                         "basis": (

@@ -441,3 +441,18 @@ def test_no_drain_by_default_preserves_semantics(tmp_path):
         assert window["steps_run"] == 4
         # Without drain the saturated queue stays full at episode end.
         assert window["end_residual_occupancy_bytes"] > 1.0e6
+
+
+def test_drain_manifest_uses_actual_post_window_and_scaled_bound(tmp_path):
+    from testbed.scenario import load_scenario
+    import math
+    p = _write_scenario(tmp_path, capacity_mbps=100.0, rate_mbps=10.0)
+    cfg = matched_config(load_scenario(p), "w", None, drain=True)
+    bound = 3 * 1000 * 1400 / (100 * 1400 / 1442 * 1e6 / 8)
+    assert cfg.episode_seconds == math.ceil(4 + bound)
+    out = tmp_path / "out"
+    assert run_case(p, out_dir=out, required_metrics=["loss_frac"], drain=True) == 0
+    m = json.loads((out / "run_manifest.json").read_text())
+    assert m["post_warmup_window_s"] == m["full_window_s"] - 1
+    assert m["capacity_convention"]["nominal_capacity_mbps"]["bb"] == 100
+    assert m["capacity_convention"]["matched_capacity_mbps"]["bb"] == cfg.cap_mbps["bb"]
