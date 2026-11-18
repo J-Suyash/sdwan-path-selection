@@ -52,19 +52,46 @@
   d7ee403c, 119 rows each): voice udp 4.84-14.64, video udp
   12.59-38.07, interactive tcp 25.83-78.08, bulk tcp 110.71-334.64
   packets (BDP with actual packet_bytes). Emulator query = backlog
-  bytes/1500: default buffers are cap_mbps*0.25 s/8 (bb/leo 6.25 MB,
-  five_g 9.375 MB), so query = frac*4166.7 (bb/leo) or frac*6250
-  (five_g); at the observed max occupancy frac 0.164 that is 683-1025
-  'packets', beyond the calibrated maximum 334.64; voice queries
-  leave the calibrated voice range once backlog exceeds ~22 kB
-  (14.64*1500 B) and fall below its minimum under ~7.3 kB.
-  The NN distance scale for this feature is median 31.25, so such
-  query values dominate the six-feature distance. The mismatch is
-  exercised only when a calibration CSV is supplied: default
-  switching_calibration_path=None (zero effects, calibrated=false);
-  scripts/decompose_sla_violations.py:103 and
-  scripts/reassess_delay_semantics.py:54 enable it via --calibrated.
-  Provenance of committed analysis CSVs wrt --calibrated unverified.
+  bytes/1500. HYPOTHETICAL ILLUSTRATION ONLY (no observed emulator
+  query values exist; default runs have calibration off): mapping
+  testbed-observed occupancy fractions into the emulator's default
+  buffers (cap_mbps*0.25 s/8: bb/leo 6.25 MB, five_g 9.375 MB) gives
+  query = frac*4166.7 (bb/leo) or frac*6250 (five_g), so at the
+  testbed's max sampled occupancy frac 0.164 the query would be
+  683-1025 'packets', beyond the calibrated maximum 334.64; a voice
+  query would leave the calibrated voice range once backlog exceeds
+  ~22 kB (14.64*1500 B). Whether the feature dominates actual NN
+  selections is UNVERIFIED - that needs real query values and the
+  other five features' contributions, not scale arithmetic alone.
+  The undefined contract also does not establish that either
+  semantic (wire BDP vs queued backlog) is the scientifically
+  appropriate one. Exercised only when a calibration CSV is
+  supplied: default switching_calibration_path=None (zero effects,
+  calibrated=false).
+  Provenance of committed 'calibrated' analysis outputs (checked
+  06:40, content + script-default evidence; no invocation records
+  exist in fish/bash history):
+  - analysis/sla_violation_decomposition.csv (129,600 rows): the
+    producing script's --calibrated is store_true with default=True
+    and no disabling flag, unchanged since producing commit 5f6b629,
+    so it ran with data/switching_calibration.csv loaded. Its
+    cause_switch_disruption is 0 in all 129,600 rows: calibrated
+    switching effects produced no attributed violation seconds under
+    ThresholdHysteresis (~0.05 switches/min), so the mismatch was
+    active but had no visible effect on this artifact.
+  - analysis/baseline_results_calibrated.csv: metric-identical to
+    analysis/delay_semantics_reassessment.csv except one cell
+    differing by exactly 1.0 (rttfix_random seed 1,
+    viol_interactive_per_h 1558 vs 1557), despite rows with ~158-161
+    switches/min where measured switching effects must change
+    violation counts. reassess_delay_semantics.py's --calibrated
+    defaults False at both the producing commit e090cfc and now, so
+    the file's content shows no calibration effect: the 'calibrated'
+    label and the matching claim in docs/rtt_semantics_and_sla_audit.md
+    sections 3-4 are unsupported by the artifact. Docs-provenance
+    defect for the owner; no regeneration per task boundary.
+  - analysis/baseline_results.csv comes from run_baseline.py, which
+    has no calibration hook at all (calibration-naive by design).
 - tc suffix convention sourced from iproute2 lib/json_print_math.c
   sprint_size (public main; installed package is 7.3.0-1.1 and matches
   on all 960 observed tokens, version match not proven): K/M/G are
