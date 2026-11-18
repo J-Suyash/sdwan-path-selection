@@ -1,0 +1,114 @@
+{
+  "label": "existing_artifact_receiver_logging_audit_no_reconstruction",
+  "totals": {
+    "runs_audited": 4,
+    "confirmed_truncation_signature": 2,
+    "missing_capture_audits": 0
+  },
+  "by_corpus": {
+    "ce01-smoke": {
+      "runs": 1,
+      "confirmed": 0,
+      "suspect_no_capture": 0,
+      "total_missing_capture_seq_ids": 1335
+    },
+    "ce01-matched-endpoint-support": {
+      "runs": 1,
+      "confirmed": 1,
+      "suspect_no_capture": 0,
+      "total_missing_capture_seq_ids": 1627
+    },
+    "rate-diag-p1": {
+      "runs": 1,
+      "confirmed": 1,
+      "suspect_no_capture": 0,
+      "total_missing_capture_seq_ids": 2014
+    },
+    "smoke-20261118-033510": {
+      "runs": 1,
+      "confirmed": 0,
+      "suspect_no_capture": 0,
+      "total_missing_capture_seq_ids": 0
+    }
+  },
+  "runs": [
+    {
+      "run_id": "e00-r00",
+      "path": "testbed/outputs/ce01-smoke/e00-r00",
+      "app_rows": 54273,
+      "app_unique": 54273,
+      "sender_rows": 75001,
+      "app_missing_from_sender": 0,
+      "capture_packets": 55608,
+      "capture_unique": 55608,
+      "capture_duplicate_sequence_ids": 0,
+      "app_not_in_capture": 0,
+      "missing_capture_seq_ids": 1335,
+      "missing_min_max": [
+        72250,
+        74998
+      ],
+      "app_is_exact_capture_prefix": false,
+      "confirmed_truncation_signature": false,
+      "corpus": "ce01-smoke"
+    },
+    {
+      "run_id": "e00-r00",
+      "path": "testbed/outputs/ce01-matched-endpoint-support/e00-r00",
+      "app_rows": 54273,
+      "app_unique": 54273,
+      "sender_rows": 75001,
+      "app_missing_from_sender": 0,
+      "capture_packets": 55900,
+      "capture_unique": 55900,
+      "capture_duplicate_sequence_ids": 0,
+      "app_not_in_capture": 0,
+      "missing_capture_seq_ids": 1627,
+      "missing_min_max": [
+        71648,
+        74999
+      ],
+      "app_is_exact_capture_prefix": true,
+      "confirmed_truncation_signature": true,
+      "corpus": "ce01-matched-endpoint-support"
+    },
+    {
+      "run_id": "e00-r00",
+      "path": "testbed/outputs/rate-diag-p1/e00-r00",
+      "app_rows": 87273,
+      "app_unique": 87273,
+      "sender_rows": 89287,
+      "app_missing_from_sender": 0,
+      "capture_packets": 89287,
+      "capture_unique": 89287,
+      "capture_duplicate_sequence_ids": 0,
+      "app_not_in_capture": 0,
+      "missing_capture_seq_ids": 2014,
+      "missing_min_max": [
+        87273,
+        89286
+      ],
+      "app_is_exact_capture_prefix": true,
+      "confirmed_truncation_signature": true,
+      "corpus": "rate-diag-p1"
+    },
+    {
+      "run_id": "e00-r00",
+      "path": "testbed/outputs/smoke-20261118-033510/e00-r00",
+      "app_rows": 782,
+      "app_unique": 782,
+      "sender_rows": 783,
+      "app_missing_from_sender": 0,
+      "capture_packets": 782,
+      "capture_unique": 782,
+      "capture_duplicate_sequence_ids": 0,
+      "app_not_in_capture": 0,
+      "missing_capture_seq_ids": 0,
+      "missing_min_max": null,
+      "app_is_exact_capture_prefix": true,
+      "confirmed_truncation_signature": false,
+      "corpus": "smoke-20261118-033510"
+    }
+  ],
+  "definition": "confirmed means app IDs are an exact prefix of unique capture IDs, no app ID outside capture, sender has more rows, and capture has fewer unique IDs than sender. Missing captures are suspect only, never confirmed."
+}
