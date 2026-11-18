@@ -1,13 +1,11 @@
 # Reproducibility recovery handoff
 
-## Current state (2026-11-18 ~05:55 IST; supersedes checkpoint figures below)
-
-Latest (05:55 IST):
+## Current state (2026-11-18 ~06:05 IST, final checkpoint)
 
 - Latest code commit `28a58b5` (testbed: suffix-aware qdisc backlog parse,
   zero-inclusive first bucket); full suite 157 passed in 137.65s at this
-  tip's code (docstring/handoff edits after the run are comments/docs
-  only). Worktree clean except the intentional `data/raw`,
+  code state. `5a2b98c` and this final edit on top are docs/comments
+  only. Worktree clean except the intentional `data/raw`,
   `data/processed` symlinks.
 - New evidence (local, candidate-only): occupancy normalization impact
   (`/home/sxtr/queue_delay_baseline_evidence_v3.json`), e11-r00 repair
@@ -17,15 +15,26 @@ Latest (05:55 IST):
 - New finding: v1 cell e11 audit trail was distorted by the tc
   Kb-suffix parse defect (e11-r00 recorded occupancy 0.0, true backlog
   241Kb = 246784 +/- 15 B); band numbers provably insensitive.
+- Aggregate-table impact (`/home/sxtr/aggregate_impact.json`):
+  original pipeline reproduces the retained calibration_stats.csv rows
+  bit-exact for both rounds and exclusions match both manifests;
+  zero-edge-only relabels only the e11 nan singleton to 'empty';
+  suffix+edge unifies v1 cell e11 (24 rows) with small stat shifts
+  (loss mean 0.01808 -> 0.01995, reordering mean 0.00932 -> 0.00988,
+  interruption mean ~unchanged); v2 unaffected. Exclusions unchanged.
+- tc suffix convention sourced from iproute2 lib/json_print_math.c
+  sprint_size (public main; installed package is 7.3.0-1.1 and matches
+  on all 960 observed tokens, version match not proven): K/M/G are
+  1024-based, suffix prints only within +/-15 B of a unit multiple.
 - v1 scenario hash conflict explained: current scenario file has
   per-path limits added; `scenario_as_run.json` (shared 1000) plus all
   120 qdisc `limit 1000` lines corroborate the as-run config; edit
   timing unknown.
-- Cumulative patch through `28a58b5`: sha256
-  420c8a409ed18b5ea57e2415e28fac33fe238b21d2672aa80ef1220479660797
-  (superseded by any later commit).
+- The cumulative patch and all artifact hashes ship in a separate
+  checksum artifact delivered alongside this handoff, kept out of the
+  committed document to avoid a self-referential hash.
 
-## Current state (2026-11-18 ~04:50, older IST; supersedes checkpoint figures below)
+### Operational detail (verified earlier this session; see the final checkpoint above for current figures)
 
 - Branch `instinct/reproducibility-diagnostics` tip
   (worktree `/home/sxtr/Projects/Major Project-instinct-recovery`),
@@ -33,7 +42,8 @@ Latest (05:55 IST):
   `data/raw` and `data/processed`, pointing at the main checkout's
   data. Nothing pushed or merged.
 - Full suite: **150 passed**, one known SciPy KS asymptotic warning,
-  142.85 s (measured at 4461cbe; later commits changed documentation only).
+  142.85 s (measured at 4461cbe). SUPERSEDED: 157 passed in 137.65 s at
+  `28a58b5` (see final checkpoint above); 28a58b5 changed testbed code.
   The 86-test and 97-test figures below are historical checkpoints,
   not current state.
 - Re-run in the existing worktree (verified this session):
