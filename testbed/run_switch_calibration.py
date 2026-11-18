@@ -405,6 +405,7 @@ def run_one(
                 raise TimeoutError("matched sender did not publish start marker")
             time.sleep(0.01)
         t0 = json.loads(start_marker.read_text())["first_sent_monotonic_s"]
+        clock_samples.append(record_clock_sample("at_first_send_marker"))
         time.sleep(max(0.0, t0 + workload.warmup_s - time.monotonic()))
     else:
         time.sleep(workload.warmup_s)
