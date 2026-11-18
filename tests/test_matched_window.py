@@ -80,13 +80,17 @@ def test_runner_opt_in_path_without_mininet(tmp_path, monkeypatch):
     monkeypatch.setattr(m, "stop_background", lambda *a, **k: None)
     monkeypatch.setattr(m, "summarize_pcap", lambda p: {"tcp_data_packets": 0, "tcp_retransmissions": 0, "tcp_out_of_order": 0})
     qcalls = []
+    resets = []
     def qdisc(p):
         qcalls.append(p)
         return "backlog 0b 0p requeues 0"
     tb = SimpleNamespace(clients={"bulk": object()}, server=object(), clear_class_route=lambda: None,
-                         install_route=lambda *a: None, set_path_capacity=lambda *a: None, qdisc_stats=qdisc)
+                         install_route=lambda *a: None, set_path_capacity=lambda *a: resets.append(a), qdisc_stats=qdisc)
     r = m.run_one(tb, s, plan, event=s.events[0], capture=False, matched_drain=True)
     endpoint = json.loads((Path(plan.directory) / "matched_window.json").read_text())
+    assert resets[:3] == [(p, spec.capacity_mbps) for p, spec in s.paths.items()]
+    restored = json.loads((Path(plan.directory) / "restored_initial_qdiscs.json").read_text())
+    assert restored["restored_monotonic_s"] < endpoint["t0_monotonic_s"]
     assert endpoint["drain_termination"] == "drained"
     assert endpoint["t1_monotonic_s"] == 115
     assert endpoint["application_summary"]["measurement_window_s"] == 15
@@ -108,3 +112,14 @@ def test_traffic_command_marker_and_legacy_defaults(tmp_path):
                           start_marker=tmp_path / "marker", idle_timeout_s=29)
     assert new[new.index("--start-marker") + 1] == str(tmp_path / "marker")
     assert new[new.index("--idle-timeout") + 1] == "29"
+
+
+def test_nonempty_prior_run_fails_before_any_start(tmp_path, monkeypatch):
+    import testbed.run_switch_calibration as m
+    s = load_scenario("testbed/scenarios/case_drafts/ce01.json")
+    plan = m.build_run_plan(s, tmp_path / "run", repetitions=1)[0]
+    tb = SimpleNamespace(clients={"bulk": object()}, server=object(),
+                         qdisc_stats=lambda p: "backlog 1442b 1p requeues 0")
+    monkeypatch.setattr(m, "start_background", lambda *a, **k: pytest.fail("no child may start"))
+    with pytest.raises(RuntimeError, match="nonempty"):
+        m.run_one(tb, s, plan, event=s.events[0], capture=False, matched_drain=True)

@@ -277,6 +277,12 @@ def run_one(
         write_json(output_dir / "initial_qdiscs.json", initial_qdiscs)
         for p, spec in scenario.paths.items():
             testbed.set_path_capacity(p, spec.capacity_mbps)
+        restored_qdiscs = {p: testbed.qdisc_stats(p) for p in scenario.paths}
+        write_json(output_dir / "restored_initial_qdiscs.json", {
+            "expected_capacity_mbps": {p: spec.capacity_mbps for p, spec in scenario.paths.items()},
+            "qdisc_text": restored_qdiscs,
+            "restored_monotonic_s": time.monotonic(),
+            "scope": "before receiver, captures, sender and event"})
     testbed.clear_class_route()
     testbed.install_route(event, start_path)
     window_spec = matched_window_spec(scenario, workload) if matched_drain else None
