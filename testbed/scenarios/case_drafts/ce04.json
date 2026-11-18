@@ -1,0 +1,59 @@
+{
+  "_review": {
+    "status": "REVIEW DRAFT - not approved, not committed, not executed",
+    "source": "mechanical translation of cross_engine_cases.json with paths/queue limits copied from switch_calibration_v2.json, 18 Nov 2026",
+    "open_fields": [
+      "Operating points (rate 4.0 Mbps, packet_bytes 1400 per manifest queue_config) transcribed from the case; owner confirms. Decision D (packets_in_flight semantics) gates this case before execution."
+    ]
+  },
+  "name": "cross_engine_ce04_switch_transient_video_udp",
+  "server_ip": "10.0.0.100",
+  "paths": {
+    "bb": {
+      "capacity_mbps": 200.0,
+      "one_way_delay_ms": 93.7,
+      "jitter_ms": 0.3,
+      "loss_pct": 0.0
+    },
+    "five_g": {
+      "capacity_mbps": 150.0,
+      "one_way_delay_ms": 37.5,
+      "jitter_ms": 1.0,
+      "loss_pct": 0.0
+    },
+    "leo": {
+      "capacity_mbps": 100.0,
+      "one_way_delay_ms": 31.0,
+      "jitter_ms": 0.3,
+      "loss_pct": 0.0
+    }
+  },
+  "workloads": {
+    "video_udp_4": {
+      "flow_type": "video",
+      "transport": "udp",
+      "client_ip": "10.0.0.12",
+      "server_port": 5000,
+      "rate_mbps": 4.0,
+      "duration_s": 14.0,
+      "warmup_s": 6.0,
+      "packet_bytes": 1400
+    }
+  },
+  "events": [
+    {
+      "workload": "video_udp_4",
+      "old_path": "leo",
+      "new_path": "bb"
+    }
+  ],
+  "repetitions": 5,
+  "queue_limit_packets": 1000,
+  "per_path_queue_limit_packets": {
+    "bb": 4166,
+    "five_g": 3125,
+    "leo": 2083
+  },
+  "branch_profile": "medium",
+  "workload_regime": "normal"
+}

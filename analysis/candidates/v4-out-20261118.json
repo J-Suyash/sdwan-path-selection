@@ -1,0 +1,97 @@
+{
+  "status": "UNREVIEWED CANDIDATE EVIDENCE - not installed in any gate",
+  "revision_authored_against": "127c33d (instinct/reproducibility-diagnostics)",
+  "integration_validated": false,
+  "inputs": {
+    "cal_v1_full": {
+      "path": "/home/sxtr/Projects/Major Project-instinct-recovery/testbed/outputs/cal_v1_full/switch_metrics_raw.csv",
+      "sha256": "ce16264fe95d8b69cce053188f4348938900e4e54e853f45219051a7f7ba5d81"
+    },
+    "cal_v2_perpath": {
+      "path": "/home/sxtr/Projects/Major Project-instinct-recovery/testbed/outputs/cal_v2_perpath/switch_metrics_raw.csv",
+      "sha256": "b09cfdf6db81470c8a447fff46af40a2bff1c6bf83a4b39a2c2c5c6bc69e1070"
+    }
+  },
+  "min_repeats": 3,
+  "stall_trim_frac": 0.2,
+  "q90_note": "q90 is a cross-cell quantile, not a worst-case bound",
+  "queue_delay_ms": "not derivable: runner records no queue_delay_ms field",
+  "original_pipeline": {
+    "cells_used": 48,
+    "half_range_q90": {
+      "interruption_s": 0.008689236097052338,
+      "loss_frac": 0.009217640252185008,
+      "reordering_frac": 0.003374988757878857,
+      "delay_median_ms": 0.08604589893366214,
+      "jitter_mean_ms": 0.01665294748779484,
+      "throughput_mbps": 0.0010576472454589595
+    },
+    "true_max_dev_from_median_q90": {
+      "interruption_s": 0.016874239487515336,
+      "loss_frac": 0.01357830244615371,
+      "reordering_frac": 0.004321455798124051,
+      "delay_median_ms": 0.11390550207578941,
+      "jitter_mean_ms": 0.023029420820894556,
+      "throughput_mbps": 0.0014843289319394172
+    },
+    "n_cells_with_values_half": {
+      "interruption_s": 48,
+      "loss_frac": 48,
+      "reordering_frac": 48,
+      "delay_median_ms": 48,
+      "jitter_mean_ms": 48,
+      "throughput_mbps": 48
+    },
+    "n_cells_with_values_maxdev": {
+      "interruption_s": 48,
+      "loss_frac": 48,
+      "reordering_frac": 48,
+      "delay_median_ms": 48,
+      "jitter_mean_ms": 48,
+      "throughput_mbps": 48
+    }
+  },
+  "repaired_pipeline": {
+    "definition": "suffix-aware qdisc parse + pipeline-faithful denominators (v1 shared 1000x1500; v2 per-path x packet_bytes), capped 1.0, repo include_lowest bucketing",
+    "n_runs_recomputed": 240,
+    "bands": {
+      "cells_used": 48,
+      "half_range_q90": {
+        "interruption_s": 0.008689236097052338,
+        "loss_frac": 0.009217640252185008,
+        "reordering_frac": 0.003374988757878857,
+        "delay_median_ms": 0.08604589893366214,
+        "jitter_mean_ms": 0.01665294748779484,
+        "throughput_mbps": 0.0010576472454589595
+      },
+      "true_max_dev_from_median_q90": {
+        "interruption_s": 0.016874239487515336,
+        "loss_frac": 0.015110821256951379,
+        "reordering_frac": 0.005466363725507266,
+        "delay_median_ms": 0.11390550207578941,
+        "jitter_mean_ms": 0.023029420820894556,
+        "throughput_mbps": 0.0014843289319394172
+      },
+      "n_cells_with_values_half": {
+        "interruption_s": 48,
+        "loss_frac": 48,
+        "reordering_frac": 48,
+        "delay_median_ms": 48,
+        "jitter_mean_ms": 48,
+        "throughput_mbps": 48
+      },
+      "n_cells_with_values_maxdev": {
+        "interruption_s": 48,
+        "loss_frac": 48,
+        "reordering_frac": 48,
+        "delay_median_ms": 48,
+        "jitter_mean_ms": 48,
+        "throughput_mbps": 48
+      }
+    }
+  },
+  "regression_checks": {
+    "original_cells_48": true,
+    "repaired_cells_present": true
+  }
+}

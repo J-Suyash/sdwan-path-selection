@@ -1,0 +1,60 @@
+{
+  "_review": {
+    "status": "CASE-REALIZED DRAFT - load-validated, not approved, not committed, not executed",
+    "resolved": [
+      "sag target 30 Mbps = 150 x capacity_floor_frac 0.2 (cross_engine_cases.json ce01)",
+      "single capacity event on five_g, no switch: purpose is pure saturation; old_path/new_path are comparator-schema fields, not switch intent",
+      "SUSTAINED sag assumption: floor holds from the event point (post-warmup, t=6s) to run end - minimal reading of capacity_floor; no repo source defines recovery. THIS IS THE ONE UNRESOLVED SCIENTIFIC-INTENT POINT (transient-with-recovery vs sustained)."
+    ]
+  },
+  "name": "cross_engine_ce01_queue_saturation_udp",
+  "server_ip": "10.0.0.100",
+  "paths": {
+    "bb": {
+      "capacity_mbps": 200.0,
+      "one_way_delay_ms": 93.7,
+      "jitter_ms": 0.3,
+      "loss_pct": 0.0
+    },
+    "five_g": {
+      "capacity_mbps": 150.0,
+      "one_way_delay_ms": 37.5,
+      "jitter_ms": 1.0,
+      "loss_pct": 0.0
+    },
+    "leo": {
+      "capacity_mbps": 100.0,
+      "one_way_delay_ms": 31.0,
+      "jitter_ms": 0.3,
+      "loss_pct": 0.0
+    }
+  },
+  "workloads": {
+    "bulk_udp_60": {
+      "flow_type": "bulk",
+      "transport": "udp",
+      "client_ip": "10.0.0.14",
+      "server_port": 9999,
+      "rate_mbps": 60.0,
+      "duration_s": 14.0,
+      "warmup_s": 6.0,
+      "packet_bytes": 1400
+    }
+  },
+  "events": [
+    {
+      "workload": "bulk_udp_60",
+      "path": "five_g",
+      "capacity_mbps": 30.0
+    }
+  ],
+  "repetitions": 5,
+  "queue_limit_packets": 1000,
+  "per_path_queue_limit_packets": {
+    "bb": 4166,
+    "five_g": 3125,
+    "leo": 2083
+  },
+  "branch_profile": "medium",
+  "workload_regime": "normal"
+}
