@@ -44,8 +44,26 @@ def test_window_excludes_stale_candidates():
     post = [pkt(15.0, 1, 40000, 9999)]  # 5s later, beyond 2s window
     result = match_residence(pre, post, 9999)
     assert result["matched"] == 0
-    assert result["unmatched_pre"] == 1
+    assert result["unmatched_pre"] == 0
+    assert result["beyond_window"] == 1  # tail-censored, counted separately
     assert result["unmatched_post"] == 1
+
+
+def test_ambiguity_flagged_not_silently_trusted():
+    # two post candidates inside the window for one pre packet
+    pre = [pkt(10.0, 1, 40000, 9999)]
+    post = [pkt(10.1, 1, 40000, 9999), pkt(10.2, 1, 40000, 9999)]
+    result = match_residence(pre, post, 9999)
+    assert result["matched"] == 1
+    assert result["ambiguous_matches"] == 1
+
+
+def test_duplicate_pre_keys_counted():
+    pre = [pkt(10.0, 1, 40000, 9999), pkt(10.1, 1, 40000, 9999)]
+    post = [pkt(10.15, 1, 40000, 9999), pkt(10.25, 1, 40000, 9999)]
+    result = match_residence(pre, post, 9999)
+    assert result["matched"] == 2
+    assert result["duplicate_pre_keys"] == 1
 
 
 def test_post_timestamp_must_be_at_or_after_pre():

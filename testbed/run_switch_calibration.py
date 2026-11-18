@@ -226,6 +226,22 @@ def capture_command(interface: str, pcap: Path, workload) -> list[str]:
     ]
 
 
+def backlog_sampler_command(interface: str, interval_s: float = 0.1) -> list[str]:
+    """Shell loop: timestamp + `tc -s qdisc show dev <intf>` every interval.
+
+    Samples the forward bottleneck qdisc's raw backlog (occupancy over
+    time) alongside the packet-match captures. Instantaneous backlog over
+    service rate is a drain-time proxy, not a latency estimate. Runs on the
+    branch node where the forward qdisc lives.
+    """
+    inner = (
+        "while :; do date +%s.%N; "
+        f"tc -s qdisc show dev {shlex.quote(interface)}; "
+        f"sleep {interval_s}; done"
+    )
+    return ["sh", "-c", inner]
+
+
 def run_one(
     testbed,
     scenario: Scenario,
@@ -259,6 +275,7 @@ def run_one(
     capture_pid = None
     prequeue_pid = None
     postqueue_pid = None
+    backlog_pid = None
     server_pid = start_background(
         server,
         traffic_command(
@@ -301,6 +318,11 @@ def run_one(
             capture_command(server.defaultIntf().name, pcap_path, workload),
             output_dir / "tcpdump.log",
         )
+        backlog_pid = start_background(
+            testbed.branch,
+            backlog_sampler_command(testbed.path_links[end_path].intf1.name),
+            output_dir / "backlog-series.log",
+        )
     time.sleep(0.6)
     sender_pid = start_background(
         client,
@@ -334,6 +356,8 @@ def run_one(
         stop_background(client, prequeue_pid, signal="INT")
     if postqueue_pid is not None:
         stop_background(testbed.branch, postqueue_pid, signal="INT")
+    if backlog_pid is not None:
+        stop_background(testbed.branch, backlog_pid, signal="TERM")
     stop_background(server, server_pid)
     stop_background(client, sender_pid)
     time.sleep(0.5)

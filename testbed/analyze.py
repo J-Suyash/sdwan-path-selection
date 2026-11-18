@@ -120,6 +120,43 @@ def parse_qdisc_backlog_bytes(output: str) -> int:
     return max(values, default=0)
 
 
+def parse_backlog_series(text: str) -> list[tuple[float, int]]:
+    """Parse a backlog-sampler log into (epoch_ts, backlog_bytes) samples.
+
+    Log format: alternating `date +%s.%N` timestamp lines and the
+    `tc -s qdisc show dev <intf>` block that followed the timestamp. Each
+    block is reduced with parse_qdisc_backlog_bytes (largest backlog across
+    the interface's qdisc sections, i.e. tbf root and netem child).
+    Sampled raw occupancy over time, not a per-packet trace: nothing is
+    inferred between samples. A backlog value divided by service rate is a
+    drain-time proxy for that instant only - it is NOT a Little's-law mean
+    latency, which would need steady-state and arrival-rate assumptions.
+    Pure parser; no tshark or pcap needed.
+    """
+    series = []
+    current_ts = None
+    block: list[str] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        try:
+            ts = float(stripped)
+            is_ts = "." in stripped
+        except ValueError:
+            is_ts = False
+        if is_ts:
+            if current_ts is not None:
+                series.append(
+                    (current_ts, parse_qdisc_backlog_bytes("\n".join(block)))
+                )
+            current_ts = ts
+            block = []
+        else:
+            block.append(line)
+    if current_ts is not None:
+        series.append((current_ts, parse_qdisc_backlog_bytes("\n".join(block))))
+    return series
+
+
 def extract_packet_marks(pcap: Path) -> list[dict]:
     """Extract per-packet match marks from a pcap via tshark.
 
@@ -192,11 +229,27 @@ def match_residence(
     dst_port) with the nearest post-queue timestamp at/after the pre-queue
     timestamp within max_window_s.
 
-    HONEST SEMANTICS: the returned residence is full branch-side residence
-    = queue wait + configured netem delay + per-packet jitter + OVS
-    forwarding delay. It is NOT pure queue sojourn. For a sojourn estimate,
-    subtract the path's configured one-way delay; per-packet jitter remains
-    an unrecoverable confound bounded by the configured jitter.
+    HONEST SEMANTICS AND LIMITS:
+    - The returned residence is full branch-side residence = queue wait +
+      configured netem delay + per-packet netem jitter + OVS forwarding
+      delay + tap timestamp placement error (same-host kernel clock removes
+      inter-host sync error only). It is NOT pure queue sojourn. A sojourn
+      estimate subtracts the configured one-way delay.
+    - Netem jitter confound: with the scenario's bare `delay D jitter J`
+      form (no distribution table), netem applies a uniform distribution in
+      [D-J, D+J], so the jitter term is bounded only under that configured
+      semantics; a distribution table would change it, and per-packet
+      realizations remain unobserved either way.
+    - Identity matching on (proto, ip_id, length, ports) is heuristic:
+      IPv4-ID reuse under high rate, fragmentation, retransmission or
+      offload can produce false pairs. `ambiguous_matches` counts matches
+      where a second candidate also fell inside the window, and
+      `duplicate_pre_keys` counts pre-queue packets sharing a key within
+      the window; both are flags to fail or downweight the measurement,
+      never silently trusted.
+    - max_window_s censors the tail: pre-queue packets whose only
+      candidates sit beyond the window are counted in `beyond_window`,
+      separately from `unmatched_pre` (no candidate at all). Report both.
     """
     from bisect import bisect_left
     from collections import defaultdict
@@ -207,29 +260,26 @@ def match_residence(
             key=lambda p: p["ts"],
         )
 
+    def key_of(packet):
+        return (
+            packet["proto"],
+            packet["ip_id"],
+            packet["length"],
+            packet["src_port"],
+            packet["dst_port"],
+        )
+
     pre = forward(pre_packets)
     post = forward(post_packets)
     buckets = defaultdict(list)
     for packet in post:
-        key = (
-            packet["proto"],
-            packet["ip_id"],
-            packet["length"],
-            packet["src_port"],
-            packet["dst_port"],
-        )
-        buckets[key].append(packet["ts"])
+        buckets[key_of(packet)].append(packet["ts"])
     residences = []
     unmatched_pre = 0
+    beyond_window = 0
+    ambiguous_matches = 0
     for packet in pre:
-        key = (
-            packet["proto"],
-            packet["ip_id"],
-            packet["length"],
-            packet["src_port"],
-            packet["dst_port"],
-        )
-        candidates = buckets.get(key)
+        candidates = buckets.get(key_of(packet))
         if not candidates:
             unmatched_pre += 1
             continue
@@ -239,16 +289,34 @@ def match_residence(
             continue
         delta = candidates[index] - packet["ts"]
         if delta > max_window_s:
-            unmatched_pre += 1
+            beyond_window += 1
             continue
+        if (
+            index + 1 < len(candidates)
+            and candidates[index + 1] - packet["ts"] <= max_window_s
+        ):
+            ambiguous_matches += 1
         candidates.pop(index)
         residences.append(delta)
+    pre_keys = defaultdict(list)
+    for packet in pre:
+        pre_keys[key_of(packet)].append(packet["ts"])
+    duplicate_pre_keys = sum(
+        len(timestamps) - 1
+        for timestamps in pre_keys.values()
+        if len(timestamps) > 1
+        and timestamps[-1] - timestamps[0] <= max_window_s
+    )
     unmatched_post = sum(len(v) for v in buckets.values())
     return {
         "residences_s": residences,
         "matched": len(residences),
         "unmatched_pre": unmatched_pre,
         "unmatched_post": unmatched_post,
+        "beyond_window": beyond_window,
+        "ambiguous_matches": ambiguous_matches,
+        "duplicate_pre_keys": duplicate_pre_keys,
+        "max_window_s": max_window_s,
     }
 
 
