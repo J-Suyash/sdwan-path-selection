@@ -78,3 +78,32 @@ mappings in it. Everything else it touches is already delegated or
 implemented: band derivation rule (half-range baseline + max-dev
 sensitivity), matched-input hooks (constant_series / fixed_load_mbps),
 and the fail-closed harness/comparator plumbing.
+
+## Addendum (18 Nov ~14:45) - band applicability, accounting reconciliation, guard scope
+
+* Bands: estimator-level rows (delay_median_ms, jitter_mean_ms) need
+  bands measured under THESE estimator definitions from matched runs.
+  The within-testbed repeatability rows in
+  analysis/cross_engine_thresholds_proposal_draft.csv quantify
+  runner-side spread only and do not automatically apply as
+  cross-estimator bands.
+* Accounting reconciliation (verified in testbed/traffic.py:49,100 and
+  testbed/analyze.py): loss_frac is a packet-count ratio runner-side
+  and a byte ratio emulator-side - identical under each case's constant
+  datagram size. throughput_mbps is payload-rate over the arrival span
+  runner-side vs delivered bytes over the fixed full window
+  emulator-side; the denominators diverge under tail-heavy loss (the
+  runner's span shortens). traffic.py paces rate_mbps in packet_bytes
+  datagrams (payload rate), while the testbed link polices wire bytes
+  (packet_bytes + 42B Eth/IP/UDP), so a 150 Mbps wire cap is about
+  145.75 Mbps payload: a ~2.9% systematic offset that also applies to
+  queue byte-equivalence (packet-count limits match exactly). Open
+  convention decision before any matched batch: scale emulator
+  capacity/buffer by packet_bytes/(packet_bytes+42) or carry the
+  documented offset. Recorded as a convention to reconcile, not
+  declared equal.
+* Guard scope: the harness takes required metrics from the original
+  testbed/scenarios/cross_engine_cases.json, so the comparator guard
+  enforces the ORIGINAL scope today. If this classification is
+  approved, switching the required-set source is an explicit code+docs
+  change, never a silent relaxation.
