@@ -345,6 +345,10 @@ def run_one(
     else:
         testbed.set_path_capacity(end_path, event.capacity_mbps)
     route_update_s = time.monotonic() - switch_started
+    # Epoch of the event point: backlog-series and pcap timestamps are
+    # epoch-based, so backlog-rise evidence must anchor to this, not to
+    # assumed wall-clock offsets.
+    event_applied_epoch_s = time.time()
     remaining = max(0.0, workload.duration_s - workload.warmup_s)
     time.sleep(remaining + 2.5)
     qdisc_after = testbed.qdisc_stats(end_path)
@@ -418,6 +422,7 @@ def run_one(
         "loss_frac": transport_loss,
         "reordering_frac": reordering,
         "route_update_s": route_update_s,
+        "event_applied_epoch_s": event_applied_epoch_s,
         "delay_median_ms": traffic["delay_median_ms"],
         "delay_p95_ms": traffic["delay_p95_ms"],
         "jitter_mean_ms": traffic["jitter_mean_ms"],
