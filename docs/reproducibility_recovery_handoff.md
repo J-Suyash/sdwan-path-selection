@@ -459,3 +459,78 @@ commits docs/comments only) is in the Current state section at
 the top. These are engineering regression tests; they do
 not validate any scientific conclusion, and every acceptance question in
 "Still pending owner decisions" above remains open.
+
+## 2026-11-18 afternoon: ce01 capacity-event runner + instrument smoke (approved single privileged run)
+
+Branch additions (engineering scaffolding; no research claims):
+- 9a85254 capacity-event runner schema (CapacityEvent: workload, path,
+  capacity_mbps) + planner/topology dispatch, unprivileged tests.
+- 7e6f628 capacity change made in place: `tc qdisc change` on the root TBF
+  (handle 5:) instead of TCIntf.config delete/rebuild, which would flush
+  queued backlog at the sag instant. netem child untouched; burst/latency
+  mirror TCIntf.bwCmds on the installed mininet.
+- 12965dc queue-residence capture pair (pre-queue: workload client iface;
+  post-queue: branch-side path iface; same-host kernel clock) +
+  extract_packet_marks/match_residence; 3c81d5c backlog-occupancy sampler
+  (100 ms tc -s loop) + matcher hardening (ambiguity/duplicate/beyond_window
+  accounting; drain-time-proxy and jitter-semantics labels).
+- 3ab3c4a event_applied_epoch_s recorded per run so backlog/capture
+  evidence anchors to the actual event, not assumed wall time.
+Suite after these: 182 passed (engineering regression only).
+
+Approved smoke (user approval WhatsApp 12:34 IST, scope: single run,
+instruments check only): `sudo ... run_switch_calibration --scenario
+/tmp/ce-drafts/ce01.json --out testbed/outputs/ce01-smoke --repetitions 1`.
+ce01 draft: five_g 150 -> 30 Mbps (capacity_floor_frac 0.2), bulk UDP
+60 Mbps, 14 s total, event after 6 s warmup. SUSTAINED floor is an
+engineering smoke assumption, NOT a settled research specification;
+capacity_floor_frac has no executable definition anywhere in the repo
+(sustained vs transient-with-recovery is the one open scientific-intent
+point). Artifacts: testbed/outputs/ce01-smoke/ (raw_unvalidated).
+
+Instrument findings from that run (raw, unvalidated, single rep):
+- Backlog sampler: pre-event median 289,842 B; post-event median
+  4,504,808 B, max 4,506,250 B; rise strictly after event_applied_epoch_s.
+  - Post max = 3125 x 1442 exactly: the queue pinned at its 3125-packet
+    netem limit. 1442 B/packet is THIS SETUP's observed accounted size
+    (payload 1400 + 42); tc accounting conventions differ by
+    NIC/offload, so do not generalize the number.
+  - Pre-event standing occupancy ~= 60 Mbps x 37.5 ms = 281,250 B is
+    CONSISTENT WITH netem delay-line residence (hypothesis, arithmetic
+    support only; not proof there was no congestion component).
+    Corollary: the runner's queue_occupancy_frac metric conflates
+    delay-line residence with congestion buildup (known caveat).
+- Packet matcher: 75,001 pre marks == sent_frames; 55,608 matched;
+  quality flags all zero (ambiguous 0, duplicate_pre_keys 0,
+  beyond_window 0, unmatched_post 0). unmatched_pre = 19,393 packets
+  dropped before the post-queue tap (qdisc overflow, tap-evidenced).
+  App-level loss was 20,728: the residual 1,335 packets reached the
+  server NIC (server pcap 55,608 == post-queue 55,608, zero kernel
+  capture drops at all three taps) but not the app log. Missing seqs are
+  SCATTERED from just after the sag to run end (not a contiguous tail;
+  last app receive 0.688 s after sender stop), so not early exit;
+  socket-buffer overflow during drain bursts is the likely mechanism,
+  UNVERIFIED (no nstat/ss counters captured).
+- Delay paths compared honestly: matcher residence median 38.286924 ms
+  vs traffic-log delay_median 38.317078 ms; p95 1202.266133 ms vs
+  1202.307379 ms. They agree to ~30-40 us but are NOT numerically
+  identical; an earlier "equal to the digit" claim was a rounding
+  artifact and is retracted. Both observe the SAME packets, so this is
+  timestamping-path consistency, not independent corroboration.
+- Residence decomposition: full 3125-packet hold drains in
+  4,506,250x8/30e6 = 1201.7 ms; observed p95 1202.3 ms matches within
+  ~0.6 ms WITHOUT adding 37.5 ms on top, consistent with the netem
+  delay-line packets sharing the 3125-packet limit (their delay elapses
+  while the queue ahead drains). Interpretation, not proof; residual
+  ~0.6 ms unexplained but bounded.
+- Teardown correction: the runner's own net.stop() DID remove the test
+  bridges - OVSSwitch.stop issues `ovs-vsctl del-br` (verified in
+  installed mininet source), and the wrapper's post-run bridge listing
+  showed only s1 BEFORE its safety-net deletions. The wrapper's
+  DELETED_LEFTOVER lines were misleading artifacts of
+  `ovs-vsctl --if-exists` exiting 0 when nothing exists. An earlier note
+  claiming the wrapper cleaned up runner residue is retracted; normal
+  teardown worked, and no teardown regression fix is needed.
+- This smoke validates the INSTRUMENTS on one live run only. It says
+  nothing about research acceptance; queue_delay_ms still has no adopted
+  estimator; ce01 sustained-vs-transient remains open above.
