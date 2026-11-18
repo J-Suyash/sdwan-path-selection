@@ -1,31 +1,37 @@
-# Frozen clock-mapping design for timing-expanded support runs
+# Corrected same-host clock-window mapping design
 
-18 November 2026. Proposal for review and frozen interpretation only. No implementation, traffic, tuning or acceptance rule is included. This design exists because the eventual matched comparison should include NIC-side rate/timing as well as counter loss. A five-run batch without this would predictably lack that evidence and invite recollection.
+18 November 2026. Replaces the prior draft's packet mapping wording. Proposal only; no implementation, traffic or acceptance rule. The intended use is to place the measured monotonic endpoint window onto capture-frame arrival timestamps, not to reinterpret packet send times as capture arrival times.
 
-## Existing evidence that constrains the design
+## Corrected definition
 
-The approved single ce01 support run already contains one host's epoch and monotonic timestamps for every sender-side packet in `prequeue.pcap` sequence payloads. A read-only check found first-packet `epoch - monotonic = 1794782505.6093206` and last-packet offset `1794782505.6092703`, a drift of -5.0176604418084025e-05s over about14s. This is evidence from one existing run that the same-host clocks are aligned closely enough for this intended mapping. It is not a general timing guarantee, and it does not justify retroactively inferring other runs' app receive times.
+A future timing-expanded run records explicit same-process clock checks. Before traffic starts and after drain/inspection, it atomically writes pairs `(epoch_s = time.time(), monotonic_s = time.monotonic())`. During the run it writes a fixed sparse sequence of additional pairs (for review: at least start, midpoint and end; the exact count is frozen before implementation and is not chosen from results). Each pair records the calls' execution order and adjacent operation timestamps so a sampling bracket is known. A pair is only a sampled association, not proof of simultaneity.
 
-## Frozen definition
+The explicit matched endpoint is already measured in monotonic time as `[t0, t1]`. Mapping means transforming those two window boundaries into estimated epoch-time intervals that can be compared with actual capture frame timestamps. Actual frame arrival epochs are never altered, and payload send time is not treated as frame arrival time.
 
-For a future timing-expanded run only, define a run-local clock mapping using explicit same-process marker pairs:
+For each boundary, the enclosing clock-check samples define an epoch estimate interval. With adjacent interior checks and drift bounded only as observed, the map must report an interval, not a point. The nominal estimate may use the enclosing marker interpolation, but acceptance metrics must use the interval: a capture frame is included only if its frame arrival epoch is unambiguously within the mapped window after mapping uncertainty; it is excluded only if unambiguously outside; frames whose timestamp overlaps uncertainty are counted in a separate `window_boundary_uncertain` category. The count/rate report therefore has a strict-inclusion count, strict-exclusion count and uncertain-boundary count. No outcome-derived tolerance is invented.
 
-- Before traffic starts, the runner records a marker with one `time.time()` value and one `time.monotonic()` value, written atomically to the run directory.
-- After traffic/drain and before captures/receivers are terminated, it records a second pair.
-- Every relevant capture packet already carries sender monotonic time in its payload and epoch time at its capture frame. The endpoint mapping remains packet-specific: `estimated_epoch = captured_offset_from_sender_epoch + sender_monotonic_s`, where `captured_offset_from_sender_epoch` is calculated from that packet's own observed pair at the sender tap when available. For post-queue/server captures whose payloads carry the same sender monotonic value, use the run-local marker-pair affine relation, not the sender tap's per-packet offset.
-- The affine mapping is offset plus drift from the two marker pairs, fit exactly through the pair. No regression, smoothing or tolerance is fitted to packet outcomes. Marker residuals and per-packet sender-tap offset spread are reported.
-- The mapped endpoint is not silently substituted for the explicit monotonic matched endpoint. Both are recorded. A NIC matched-window count/rate is defined by counting capture frames whose estimated epoch is within the mapped application endpoint and whose packet sequence was sent within [t0,t1]. It is labeled `mapped_capture_matched_window`, never raw application delivery.
-- Qdisc counters remain full-drained-run counters; capture-based window metrics are descriptive, not a replacement for qdisc conservation or app logs.
-- The design is for same-host clocks only. It is invalid if any capture moves to another host/namespace with an unshared clock, if marker pairs are missing, if timestamps move backwards or if packet-level source data are absent. Then the metric is fail-closed unavailable, not approximated.
+Sender sequence/send-time eligibility is a separate cohort predicate: a packet's sequence is eligible if its payload monotonic send time is in `[t0, t1]`. This eligibility is not used as an arrival timestamp. For UDP sender-side captures, payload monotonic send time and frame epoch can provide descriptive send-to-tap latency. That difference is not a clock-offset validation: it includes scheduling, packet construction, send system call and tap placement.
 
-## Verification needed before any execution approval
+## Clock health checks
 
-1. Review the definition above; no silent implementation.
-2. Unit/offline verification: synthetic clocks with constant offset and known drift reproduce exact mapping; missing/backwards markers fail closed; mapped NIC window is not relabeled as app delivery; legacy outputs are unchanged. A single-packet mapping on a future run can be checked against the sender's own first/last payload pairs.
-3. Fresh run preflight records `date`, `timedatectl`/NTP state as a descriptive fact, same-host identity, CPU load and marker-pair files. No system clock or service changes.
-4. Artifacts retained per run: marker pairs, sender and receiver logs, all captures/drop reports, qdisc counters, backlog series, endpoint records and a hash manifest.
-5. Owner's execution approval names the timing-expanded five-run batch explicitly; this clock design alone does not approve traffic.
+The metric is available only if all checks pass:
 
-## Actionable recommendation
+- Markers exist, are same-host and preserve call-order metadata.
+- Monotonic timestamps are nondecreasing and epoch/monotonic samples have a plausible single-host relation; any wall-clock step or detected nonlinear adjustment makes mapped-window timing unavailable.
+- Interior clock checks are independent samples, not a fitted line's zero residuals. With exactly two points, residuals are zero by construction and carry no validation. Interior checks measure observed drift/step evidence and bracketing.
+- Frame timestamps are in the same epoch domain as the markers and have no backwards order beyond the documented packet reordering being studied.
+- Capture process logs are retained and report zero kernel drops; otherwise frame-arrival counts are incomplete evidence.
 
-Choose the timing-expanded scope for the eventual five-run ce01 support batch, because the intended matched comparison should include NIC timing/rate and the avoidable gap is known before data. The fixed interpretation above is the smallest added definition needed. Do not implement it or ask for execution until the user-facing approval explicitly includes five timing-expanded runs. If the user declines more privileged runs, stop rather than fall back to a minimum batch whose later timing questions are already predictable.
+The mapped result is labeled `mapped_capture_window`. It is descriptive, never application delivery, qdisc conservation, or packet delay. The monotonic matched endpoint remains the primary explicit window; both domains are retained.
+
+## Verification before implementation approval
+
+1. Offline synthetic clock tests with constant offset, known drift, known wall-clock step and deliberate sampling brackets: boundary filtering returns strict-in/strict-out/uncertain counts and nonlinear/step detection marks timing unavailable. Legacy metrics and drain behavior are unchanged.
+2. Fake-capture tests prove payload send time is not used as frame arrival time.
+3. Source review verifies each marker writer is atomic and records call order, and no system clock/NTP setting is changed.
+4. Existing approved support run may be used only as format evidence, not as validation of clock offset: its sender-tap epoch-minus-send values include send-to-tap latency.
+5. Future traffic still requires a separate scoped approval naming the timing-expanded batch. No approval is implied by this corrected design.
+
+## Recommendation
+
+Proceed only with this corrected timing-expanded design. Do not implement the previous draft. The actionable next step is bounded offline implementation plus tests, after parent confirms the correction is now the intended interpretation; then ask for one explicit five-run execution approval. If the user does not want more privileged runs, stop rather than collect a minimum batch that knowingly lacks timing evidence.
