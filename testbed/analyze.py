@@ -120,6 +120,138 @@ def parse_qdisc_backlog_bytes(output: str) -> int:
     return max(values, default=0)
 
 
+def extract_packet_marks(pcap: Path) -> list[dict]:
+    """Extract per-packet match marks from a pcap via tshark.
+
+    Returns one dict per packet: ts (epoch float), proto ("tcp"/"udp"),
+    ip_id, src_port, dst_port, length. Candidate instrumentation for
+    cross-capture packet matching; parsing only, no validation implied.
+    """
+    if not pcap.exists() or pcap.stat().st_size == 0:
+        return []
+    output = subprocess.run(
+        [
+            "tshark",
+            "-r",
+            str(pcap),
+            "-T",
+            "fields",
+            "-e",
+            "frame.time_epoch",
+            "-e",
+            "ip.id",
+            "-e",
+            "frame.len",
+            "-e",
+            "tcp.srcport",
+            "-e",
+            "udp.srcport",
+            "-e",
+            "tcp.dstport",
+            "-e",
+            "udp.dstport",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    marks = []
+    for line in output.splitlines():
+        fields = line.split("\t")
+        if len(fields) != 7 or not fields[0] or not fields[1]:
+            continue
+        ts, ip_id, length = fields[0], fields[1], fields[2]
+        src = fields[3] or fields[4]
+        dst = fields[5] or fields[6]
+        if not src or not dst:
+            continue
+        marks.append(
+            {
+                "ts": float(ts),
+                "ip_id": int(ip_id, 16) if ip_id.startswith("0x") else int(ip_id),
+                "proto": "tcp" if fields[3] else "udp",
+                "src_port": int(src),
+                "dst_port": int(dst),
+                "length": int(length),
+            }
+        )
+    return marks
+
+
+def match_residence(
+    pre_packets: list[dict],
+    post_packets: list[dict],
+    server_port: int,
+    *,
+    max_window_s: float = 2.0,
+) -> dict:
+    """Match forward packets between a pre-queue and a post-queue capture.
+
+    Both captures must share one clock (they do: same host, kernel
+    timestamps). A match is one-to-one on (proto, ip_id, length, src_port,
+    dst_port) with the nearest post-queue timestamp at/after the pre-queue
+    timestamp within max_window_s.
+
+    HONEST SEMANTICS: the returned residence is full branch-side residence
+    = queue wait + configured netem delay + per-packet jitter + OVS
+    forwarding delay. It is NOT pure queue sojourn. For a sojourn estimate,
+    subtract the path's configured one-way delay; per-packet jitter remains
+    an unrecoverable confound bounded by the configured jitter.
+    """
+    from bisect import bisect_left
+    from collections import defaultdict
+
+    def forward(packets):
+        return sorted(
+            (p for p in packets if p["dst_port"] == server_port),
+            key=lambda p: p["ts"],
+        )
+
+    pre = forward(pre_packets)
+    post = forward(post_packets)
+    buckets = defaultdict(list)
+    for packet in post:
+        key = (
+            packet["proto"],
+            packet["ip_id"],
+            packet["length"],
+            packet["src_port"],
+            packet["dst_port"],
+        )
+        buckets[key].append(packet["ts"])
+    residences = []
+    unmatched_pre = 0
+    for packet in pre:
+        key = (
+            packet["proto"],
+            packet["ip_id"],
+            packet["length"],
+            packet["src_port"],
+            packet["dst_port"],
+        )
+        candidates = buckets.get(key)
+        if not candidates:
+            unmatched_pre += 1
+            continue
+        index = bisect_left(candidates, packet["ts"] - 1e-3)
+        if index >= len(candidates):
+            unmatched_pre += 1
+            continue
+        delta = candidates[index] - packet["ts"]
+        if delta > max_window_s:
+            unmatched_pre += 1
+            continue
+        candidates.pop(index)
+        residences.append(delta)
+    unmatched_post = sum(len(v) for v in buckets.values())
+    return {
+        "residences_s": residences,
+        "matched": len(residences),
+        "unmatched_pre": unmatched_pre,
+        "unmatched_post": unmatched_post,
+    }
+
+
 def summarize_pcap(pcap: Path) -> dict[str, int]:
     if not pcap.exists() or pcap.stat().st_size == 0:
         return {

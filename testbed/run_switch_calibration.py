@@ -251,10 +251,14 @@ def run_one(
     server_stdout = output_dir / "receiver.log"
     sender_stdout = output_dir / "sender.log"
     pcap_path = output_dir / "traffic.pcap"
+    prequeue_pcap = output_dir / "prequeue.pcap"
+    postqueue_pcap = output_dir / "postqueue.pcap"
     qdisc_before_path = output_dir / "qdisc_before.txt"
     qdisc_after_path = output_dir / "qdisc_after.txt"
 
     capture_pid = None
+    prequeue_pid = None
+    postqueue_pid = None
     server_pid = start_background(
         server,
         traffic_command(
@@ -267,6 +271,31 @@ def run_one(
         server_stdout,
     )
     if capture:
+        # Queue-residence capture pair (ce01 sojourn instrumentation):
+        # pre-queue point is the workload client's own interface - the
+        # client link is an unshaped veth, so its TX timestamp is ~the
+        # branch client-port RX. Post-queue point is the BRANCH-side
+        # interface of the run's relevant path link: the forward
+        # (client->server) bottleneck qdisc lives on branch.intf1 of that
+        # link. Kernel taps fire after qdisc dequeue, so branch TX is
+        # post-queue. For switch events only end_path is covered; the
+        # pre-switch path queue is not (documented limitation).
+        prequeue_pid = start_background(
+            client,
+            capture_command(
+                client.defaultIntf().name, prequeue_pcap, workload
+            ),
+            output_dir / "tcpdump-prequeue.log",
+        )
+        postqueue_pid = start_background(
+            testbed.branch,
+            capture_command(
+                testbed.path_links[end_path].intf1.name,
+                postqueue_pcap,
+                workload,
+            ),
+            output_dir / "tcpdump-postqueue.log",
+        )
         capture_pid = start_background(
             server,
             capture_command(server.defaultIntf().name, pcap_path, workload),
@@ -301,6 +330,10 @@ def run_one(
 
     if capture_pid is not None:
         stop_background(server, capture_pid, signal="INT")
+    if prequeue_pid is not None:
+        stop_background(client, prequeue_pid, signal="INT")
+    if postqueue_pid is not None:
+        stop_background(testbed.branch, postqueue_pid, signal="INT")
     stop_background(server, server_pid)
     stop_background(client, sender_pid)
     time.sleep(0.5)
