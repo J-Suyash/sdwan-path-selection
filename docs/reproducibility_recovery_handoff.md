@@ -534,3 +534,16 @@ Instrument findings from that run (raw, unvalidated, single rep):
 - This smoke validates the INSTRUMENTS on one live run only. It says
   nothing about research acceptance; queue_delay_ms still has no adopted
   estimator; ce01 sustained-vs-transient remains open above.
+
+### ce01 smoke follow-up: drop-counter reconciliation + wire-reorder finding (2026-11-18 ~13:40 IST)
+
+**Qdisc drop-counter reconciliation** (from `backlog-series.log` first/last blocks and `qdisc_after.txt`, run e00-r00):
+
+- netem child (handle 10:, parent 5:1, limit 3125, `delay 37.5ms 1ms`): cumulative `dropped 19393` == tap-inferred unmatched_pre **19,393 exactly**; netem `Sent ... 55608 pkt` == post-queue tap count == matcher matched count. Conservation closes: 19,393 + 55,608 = 75,001 == sent_frames.
+- tbf root (5:): `overlimits 90931` (expected rate-limit events under shaping); qdisc_after backlog 0.
+- Consequence: the 19,393 pre-tap-only packets are **netem limit drops by direct counter reconciliation**, an upgrade from tap-localization alone. The loss split stands: 20,728 app-missing = 19,393 netem drops + 1,335 NIC-to-app gap (mechanism still unverified, no socket counters captured).
+
+**Wire-reorder finding** (seq parsed from pcap UDP payloads, `/tmp/ce01_order2.py`):
+
+- Pre-queue tap: 75,001 packets, **0** seq inversions. Post-queue tap: 55,608 packets, **21,468** inversions, max depth -38 seqs. receiver.csv shows 21,033 (same phenomenon; fewer pairs because of the 1,335 missing app rows). The runner's reordering_frac 0.546 therefore measures **real wire reorder between the taps**, not a metric bug and not app-side interleave (sender and receiver are both single-threaded, single-socket; source: testbed/traffic.py).
+- Attribution: netem was configured `delay 37.5ms 1ms` with **no reorder option** and reports `reordered 0`; under tc-netem semantics netem avoids reordering unless explicitly enabled. Depth -38 seqs at the 60 Mbps send rate is ~7.3ms of sends, far outside the ±1ms jitter, so the reorder is not attributable to the configured netem impairment. Candidate sources are the veth/OVS forwarding path under load (e.g. NAPI/backlog interleave); **unverified**, flagged as an open instrumentation question: reordering_frac in Mininet runs is platform-behavior-sensitive and cannot be read as impairment-caused without a reorder-capable impairment config.
