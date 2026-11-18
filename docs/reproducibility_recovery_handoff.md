@@ -69,29 +69,32 @@
   supplied: default switching_calibration_path=None (zero effects,
   calibrated=false).
   Provenance of committed 'calibrated' analysis outputs (checked
-  06:40, content + script-default evidence; no invocation records
-  exist in fish/bash history):
-  - analysis/sla_violation_decomposition.csv (129,600 rows): the
-    producing script's --calibrated is store_true with default=True
-    and no disabling flag, unchanged since producing commit 5f6b629,
-    so it ran with data/switching_calibration.csv loaded. Its
-    cause_switch_disruption is 0 in all 129,600 rows: calibrated
-    switching effects produced no attributed violation seconds under
-    ThresholdHysteresis (~0.05 switches/min), so the mismatch was
-    active but had no visible effect on this artifact.
-  - analysis/baseline_results_calibrated.csv: metric-identical to
-    analysis/delay_semantics_reassessment.csv except one cell
-    differing by exactly 1.0 (rttfix_random seed 1,
-    viol_interactive_per_h 1558 vs 1557), despite rows with ~158-161
-    switches/min where measured switching effects must change
-    violation counts. reassess_delay_semantics.py's --calibrated
-    defaults False at both the producing commit e090cfc and now, so
-    the file's content shows no calibration effect: the 'calibrated'
-    label and the matching claim in docs/rtt_semantics_and_sla_audit.md
-    sections 3-4 are unsupported by the artifact. Docs-provenance
-    defect for the owner; no regeneration per task boundary.
+  06:40): SUPPORTING EVIDENCE ONLY - script defaults at the producing
+  commits plus artifact content. Exact runtime invocations, revisions
+  and inputs are NOT verified (no invocation records found in shell
+  histories), so the claimed calibrated provenance is currently
+  unsubstantiated and calibration effects on these artifacts can be
+  ruled neither in nor out.
+  - analysis/sla_violation_decomposition.csv (129,600 rows, committed
+    5f6b629): the producing script's --calibrated is store_true with
+    default=True and no disabling flag, unchanged since 5f6b629 -
+    consistent with data/switching_calibration.csv (v1) loaded; v2 did
+    not exist until 2842428. Its cause_switch_disruption is 0 in all
+    rows, but that single attribution column does not bound effects on
+    paths, actions, emulator state or cost, so no conclusion about
+    effect presence or absence is drawn from it.
+  - analysis/baseline_results_calibrated.csv (e090cfc): metric-
+    identical to analysis/delay_semantics_reassessment.csv except one
+    cell differing by 1.0 (rttfix_random seed 1,
+    viol_interactive_per_h 1558 vs 1557). reassess_delay_semantics.py's
+    --calibrated defaults False at e090cfc and now. Similar outputs
+    plus the default do NOT prove the run was uncalibrated, and small
+    switching effects need not change integer violation counts; the
+    'calibrated' label (and docs/rtt_semantics_and_sla_audit.md
+    sections 3-4) remains unsubstantiated either way. Open provenance
+    question for the owner; no regeneration per task boundary.
   - analysis/baseline_results.csv comes from run_baseline.py, which
-    has no calibration hook at all (calibration-naive by design).
+    has no calibration hook (calibration-naive by design).
 - tc suffix convention sourced from iproute2 lib/json_print_math.c
   sprint_size (public main; installed package is 7.3.0-1.1 and matches
   on all 960 observed tokens, version match not proven): K/M/G are
