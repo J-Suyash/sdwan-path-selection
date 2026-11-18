@@ -1,3 +1,12 @@
+> 18 Nov 2026 working-state addendum (supersedes stale pending wording below):
+> Setup-specific 1400/1442 capacity scaling is applied in the matched harness,
+> with P1 exploratory provenance. P1 executed once; its loss discriminator
+> was uninformative. The four existing-input emulator characterizations have
+> run unprivileged, all fail-closed. No acceptance or matched privileged batch.
+> Current protocol and case-intent mismatches:
+> docs/cross_engine_existing_input_characterization.md. Legacy definitions
+> below remain historical review context, not an execution authorization.
+
 # Cross-engine next experiment plan and criteria
 
 Status: REVIEW DRAFT for the owner, 18 Nov 2026. Prepared under the

@@ -82,6 +82,7 @@ from statistics import fmean, median
 from env.config import SDWanConfig
 from env.sdwan_env import SDWanEnv
 from testbed.scenario import CapacityEvent, SwitchEvent, load_scenario
+from testbed.matched_window import matched_window_spec
 
 EXPRESSIBLE_METRICS = ("loss_frac", "throughput_mbps", "interruption_s")
 
@@ -182,6 +183,8 @@ def matched_config(
     if unknown:
         raise ValueError(f"scenario paths outside emulator underlays: {sorted(unknown)}")
     wl = scenario.workloads[workload_name]
+    if wl.packet_bytes != 1400:
+        raise ValueError("1442-byte working convention is supported only for this 1400-byte setup")
     for other in scenario.workloads.values():
         if other.packet_bytes != wl.packet_bytes:
             raise ValueError(
@@ -199,20 +202,7 @@ def matched_config(
     episode_seconds = int(wl.duration_s)
     load_stop_s = None
     if drain:
-        # Bounded drain extension (D2): after the send window the load
-        # drops to zero; the bound is 3 x max buffer / min service across
-        # every capacity the case can set (initial and event values).
-        max_buffer = max(
-            scenario.queue_limit_for(p) for p in scenario.paths
-        ) * wl.packet_bytes
-        capacities = [spec.capacity_mbps for spec in scenario.paths.values()]
-        capacities += [
-            e.capacity_mbps for e in scenario.events
-            if isinstance(e, CapacityEvent)
-        ]
-        min_capacity = min(c for c in capacities if c > 0)
-        drain_bound_s = 3.0 * max_buffer / (min_capacity * payload_fraction * 1e6 / 8.0)
-        episode_seconds = math.ceil(wl.duration_s + drain_bound_s)
+        episode_seconds = matched_window_spec(scenario, wl)["max_episode_s"]
         load_stop_s = float(wl.duration_s)
     return SDWanConfig(
         episode_seconds=episode_seconds,
@@ -610,6 +600,7 @@ def run_case(
                     "created_utc": datetime.now(timezone.utc).isoformat(),
                     "git_head": head,
                     "scenario_path": str(scenario_path),
+                    "case_interpretation": ("sustained sag from event to end is a working interpretation, not recovered original intent" if capacity_events else "existing switch operating points; case names do not establish boundary coverage"),
                     "scenario_sha256": hashlib.sha256(scenario_bytes).hexdigest(),
                     "calibration_path": calibration_path,
                     "seed_base": seed,

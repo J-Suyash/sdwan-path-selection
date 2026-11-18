@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import socket
 import struct
 import time
@@ -61,6 +62,10 @@ def run_udp_sender(args: argparse.Namespace) -> None:
             sent_at = time.monotonic()
             packet = HEADER.pack(seq, sent_at) + payload
             sock.sendto(packet, (args.host, args.port))
+            if seq == 0 and getattr(args, "start_marker", None):
+                marker_tmp = args.start_marker.with_suffix(".tmp")
+                marker_tmp.write_text(json.dumps({"first_sent_monotonic_s": sent_at}) + "\n")
+                marker_tmp.replace(args.start_marker)
             writer.writerow((seq, f"{sent_at:.9f}", f"{sent_at:.9f}"))
             seq += 1
 
@@ -122,6 +127,10 @@ def run_tcp_sender(args: argparse.Namespace) -> None:
                 time.sleep(target - now)
             sent_at = time.monotonic()
             sock.sendall(HEADER.pack(seq, sent_at) + payload)
+            if seq == 0 and getattr(args, "start_marker", None):
+                marker_tmp = args.start_marker.with_suffix(".tmp")
+                marker_tmp.write_text(json.dumps({"first_sent_monotonic_s": sent_at}) + "\n")
+                marker_tmp.replace(args.start_marker)
             writer.writerow((seq, f"{sent_at:.9f}", f"{sent_at:.9f}"))
             seq += 1
     sock.shutdown(socket.SHUT_WR)
@@ -140,6 +149,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--idle-timeout", type=float, default=2.0)
     parser.add_argument("--packet-bytes", type=int, default=1200)
+    parser.add_argument("--start-marker", type=Path, default=None)
     parser.add_argument("--out", type=Path, required=True)
     return parser.parse_args()
 

@@ -59,7 +59,8 @@ def main():
             "capacity_scale": wl.packet_bytes / 1442.0,
             "queue_buffer_payload_bytes": dict(cfg.queue_buffer_bytes),
             "emulator_endpoints": "step 0 to first post-load step with summed residual below one packet, or scaled 3*max_buffer/min_service bound",
-            "runner_endpoint_status": "not yet aligned: runner existing receiver/capture timing requires audit before Stage B",
+            "runner_endpoint_status": "opt-in --matched-drain: common anchored inspection-grid definition, actual host sampling times and lateness reported; no denominator equality assumed",
+            "case_interpretation": ("sustained sag from event to end is a working interpretation, not recovered original intent" if i == 1 else "existing switch inputs, case names do not prove boundary coverage"),
             "send_duration_interpretation": "14s send duration; warmup/event at 6s is within it, not an additional 6s",
             "candidate_estimators": "full episode per-step time weighting, including opt-in drain; informational, no estimator tuning or acceptance",
             "status": "dry_run_only"

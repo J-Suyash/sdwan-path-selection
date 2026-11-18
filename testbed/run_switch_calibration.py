@@ -38,6 +38,7 @@ from testbed.analyze import (
     summarize_traffic,
 )
 from testbed.scenario import CapacityEvent, Scenario, SwitchEvent, load_scenario
+from testbed.matched_window import matched_window_spec, inspection_offsets, queue_snapshot, summarize_matched_window
 
 ROOT = Path(__file__).resolve().parents[1]
 TRAFFIC_SCRIPT = ROOT / "testbed" / "traffic.py"
@@ -186,8 +187,10 @@ def traffic_command(
     *,
     host: str,
     timeout_s: float,
+    start_marker: Path | None = None,
+    idle_timeout_s: float = 2.0,
 ) -> list[str]:
-    return [
+    command = [
         sys.executable,
         str(TRAFFIC_SCRIPT),
         role,
@@ -203,12 +206,15 @@ def traffic_command(
         "--timeout",
         str(timeout_s),
         "--idle-timeout",
-        "2",
+        str(idle_timeout_s),
         "--packet-bytes",
         str(workload.packet_bytes),
         "--out",
         str(output),
     ]
+    if start_marker is not None:
+        command += ["--start-marker", str(start_marker)]
+    return command
 
 
 def capture_command(interface: str, pcap: Path, workload) -> list[str]:
@@ -249,6 +255,7 @@ def run_one(
     *,
     event,  # SwitchEvent | CapacityEvent
     capture: bool,
+    matched_drain: bool = False,
 ) -> dict:
     is_switch = isinstance(event, SwitchEvent)
     start_path = event.old_path if is_switch else event.path
@@ -259,9 +266,23 @@ def run_one(
     output_dir = Path(plan.directory)
     output_dir.mkdir(parents=True, exist_ok=False)
 
+    if matched_drain:
+        # run_actual reuses one network across repetitions. Restore every
+        # initial rate or ce01 rep2 would start at rep1's 30Mbps floor.
+        # Drain and audit prior-run residuals before resetting rates.
+        initial_qdiscs = {p: testbed.qdisc_stats(p) for p in scenario.paths}
+        initial_snapshot = queue_snapshot(initial_qdiscs)
+        if not initial_snapshot["drained"]:
+            raise RuntimeError("matched repetition starts with nonempty qdisc")
+        write_json(output_dir / "initial_qdiscs.json", initial_qdiscs)
+        for p, spec in scenario.paths.items():
+            testbed.set_path_capacity(p, spec.capacity_mbps)
     testbed.clear_class_route()
     testbed.install_route(event, start_path)
-    timeout_s = workload.duration_s + 8.0
+    window_spec = matched_window_spec(scenario, workload) if matched_drain else None
+    timeout_s = (window_spec["max_episode_s"] + 10.0) if window_spec else workload.duration_s + 8.0
+    start_marker = output_dir / "sender_start.json" if matched_drain else None
+    matched_endpoint = None
     server_log = output_dir / "receiver.csv"
     sender_log = output_dir / "sender.csv"
     server_stdout = output_dir / "receiver.log"
@@ -284,6 +305,7 @@ def run_one(
             server_log,
             host="0.0.0.0",
             timeout_s=timeout_s,
+            idle_timeout_s=timeout_s if matched_drain else 2.0,
         ),
         server_stdout,
     )
@@ -332,11 +354,21 @@ def run_one(
             sender_log,
             host=scenario.server_ip,
             timeout_s=timeout_s,
+            start_marker=start_marker,
         ),
         sender_stdout,
     )
 
-    time.sleep(workload.warmup_s)
+    if matched_drain:
+        deadline = time.monotonic() + 5.0
+        while not start_marker.exists():
+            if time.monotonic() >= deadline:
+                raise TimeoutError("matched sender did not publish start marker")
+            time.sleep(0.01)
+        t0 = json.loads(start_marker.read_text())["first_sent_monotonic_s"]
+        time.sleep(max(0.0, t0 + workload.warmup_s - time.monotonic()))
+    else:
+        time.sleep(workload.warmup_s)
     qdisc_before = testbed.qdisc_stats(start_path)
     qdisc_before_path.write_text(qdisc_before, encoding="utf-8")
     switch_started = time.monotonic()
@@ -350,7 +382,34 @@ def run_one(
     # assumed wall-clock offsets.
     event_applied_epoch_s = time.time()
     remaining = max(0.0, workload.duration_s - workload.warmup_s)
-    time.sleep(remaining + 2.5)
+    if matched_drain:
+        inspections = []
+        for offset in inspection_offsets(window_spec):
+            target = t0 + offset
+            time.sleep(max(0.0, target - time.monotonic()))
+            sample_started = time.monotonic()
+            raw_qdiscs = {p: testbed.qdisc_stats(p) for p in scenario.paths}
+            sample_ended = time.monotonic()
+            snapshot = queue_snapshot(raw_qdiscs)
+            write_json(output_dir / f"drain_qdisc_{offset:02d}.json", raw_qdiscs)
+            inspections.append({"nominal_offset_s": offset, "sample_started_monotonic_s": sample_started,
+                                "sample_ended_monotonic_s": sample_ended, **snapshot})
+            if snapshot["drained"]:
+                break
+        if not inspections:
+            raise ValueError("matched drain has no inspection window")
+        t1 = inspections[-1]["sample_ended_monotonic_s"]
+        matched_endpoint = {"spec": window_spec, "inspections": inspections,
+                            "t0_monotonic_s": t0, "t1_monotonic_s": t1,
+                            "drain_termination": "drained" if snapshot["drained"] else "bound_hit",
+                            "actual_event_offset_s": switch_started - t0,
+                            "host_sampling_lateness_s": t1 - (t0 + inspections[-1]["nominal_offset_s"]),
+                            "in_flight_caveat": "zero qdisc backlog is not proof that every dequeued packet reached the application"}
+        # Collect late arrivals separately, then filter the matched-window
+        # summary at t1. This grace is NOT added to its denominator.
+        time.sleep(0.5)
+    else:
+        time.sleep(remaining + 2.5)
     qdisc_after = testbed.qdisc_stats(end_path)
     qdisc_after_path.write_text(qdisc_after, encoding="utf-8")
 
@@ -399,6 +458,12 @@ def run_one(
     reordering = traffic["reordering_frac"]
     if workload.transport == "tcp" and pcap["tcp_data_packets"]:
         reordering = pcap["tcp_out_of_order"] / pcap["tcp_data_packets"]
+
+    if matched_endpoint is not None:
+        matched_endpoint["application_summary"] = summarize_matched_window(
+            sender_log, server_log, t0=matched_endpoint["t0_monotonic_s"],
+            t1=matched_endpoint["t1_monotonic_s"], packet_bytes=workload.packet_bytes)
+        write_json(output_dir / "matched_window.json", matched_endpoint)
 
     metrics = {
         "run_id": plan.run_id,
@@ -450,7 +515,7 @@ def run_one(
     return metrics
 
 
-def run_actual(scenario: Scenario, plan: list[RunPlan], capture: bool) -> list[dict]:
+def run_actual(scenario: Scenario, plan: list[RunPlan], capture: bool, matched_drain: bool = False) -> list[dict]:
     if os.geteuid() != 0:
         raise PermissionError("Mininet execution must run with sudo")
     issues = environment_checks()
@@ -475,6 +540,7 @@ def run_actual(scenario: Scenario, plan: list[RunPlan], capture: bool) -> list[d
                     item,
                     event=event,
                     capture=capture,
+                    matched_drain=matched_drain,
                 )
             )
     finally:
@@ -514,6 +580,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repetitions", type=int)
     parser.add_argument("--no-capture", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--matched-drain", action="store_true", help="opt-in explicit matched-window diagnostics; legacy metrics unchanged")
     return parser.parse_args()
 
 
@@ -536,6 +603,8 @@ def main() -> None:
             "environment_checks": environment_checks(),
             "tool_versions": tool_versions(),
             "execution_environment": "/usr/bin/python3 (system Mininet)",
+            "matched_drain": args.matched_drain,
+            "matched_windows": {name: matched_window_spec(scenario, w) for name, w in scenario.workloads.items()} if args.matched_drain else None,
         },
     )
     print(json.dumps([asdict(item) for item in plan], indent=2))
@@ -548,7 +617,7 @@ def main() -> None:
         print(f"dry-run manifest: {args.out / 'dry_run_plan.json'}")
         return
 
-    results = run_actual(scenario, plan, capture=not args.no_capture)
+    results = run_actual(scenario, plan, capture=not args.no_capture, matched_drain=args.matched_drain)
     write_results(args.out, args.scenario, results)
     print(f"raw measurements: {args.out / 'switch_metrics_raw.csv'}")
 
