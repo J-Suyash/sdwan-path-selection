@@ -14,7 +14,9 @@
   zero-edge-only, and suffix+edge repairs.
 - New finding: v1 cell e11 audit trail was distorted by the tc
   Kb-suffix parse defect (e11-r00 recorded occupancy 0.0, true backlog
-  241Kb = 246784 +/- 15 B); band numbers provably insensitive.
+  241Kb = 246784 +/- 15 B, per the iproute2 suffix convention sourced
+  from public main with installed-version match not proven - see the
+  tc-convention bullet below); band numbers provably insensitive.
 - Aggregate-table impact (`/home/sxtr/aggregate_impact.json`):
   original pipeline reproduces the retained calibration_stats.csv rows
   bit-exact for both rounds and exclusions match both manifests;
@@ -22,6 +24,24 @@
   suffix+edge unifies v1 cell e11 (24 rows) with small stat shifts
   (loss mean 0.01808 -> 0.01995, reordering mean 0.00932 -> 0.00988,
   interruption mean ~unchanged); v2 unaffected. Exclusions unchanged.
+- Open mechanical finding (candidate evidence, owner decision pending,
+  no fix applied): the emulator's switching query converts queue
+  occupancy bytes with a fixed 1500 B (`env/sdwan_env.py:183`,
+  `packets_in_flight=occupancy / 1500.0`), while the calibration
+  column it queries was computed as bandwidth-delay product with the
+  workload's actual packet size (testbed/run_switch_calibration.py:308,
+  packet_bytes 240/1200/1400) - the same convention the b325289 fix
+  corrected on the testbed side. Two divergences: fixed 1500 B vs
+  actual packet size (6.25x for 240 B voice, 1.25x for 1200 B, 1.071x
+  for 1400 B), and wire BDP vs queued backlog as the named quantity.
+  `SwitchingModel.predict` (env/switching.py) is nearest-neighbour over
+  six normalised features with no convention or range guard and no
+  failure path, so a wrong-convention query silently selects
+  neighbours. Docs disclose the corrected testbed convention
+  (docs/switching_calibration_report.md:78, docs/testbed_match.md:30)
+  but not the emulator's residual 1500 B. Committed calibration
+  artefacts are unaffected (testbed side); impact is limited to
+  emulator-vs-testbed switching-transient comparability.
 - tc suffix convention sourced from iproute2 lib/json_print_math.c
   sprint_size (public main; installed package is 7.3.0-1.1 and matches
   on all 960 observed tokens, version match not proven): K/M/G are
@@ -53,8 +73,9 @@
   ```
   The worktree reuses the main checkout's virtualenv; the `data/raw`
   and `data/processed` symlinks already exist and are intentionally
-  retained. Verified: 150 passed at 4461cbe (later commits are
-  documentation/comment-only).
+  retained. Verified: 150 passed at 4461cbe; re-verified after the
+  28a58b5 testbed code change: 157 passed in 137.65 s. Only 5a2b98c
+  and c546e72 sit on top, both documentation/comment-only.
 - Fresh-clone setup (documented in README/Setup, NOT retested this
   session): `uv` venv creation, requirements install, then the two
   data symlinks, then `python -m pytest -q`. The suite was not run
