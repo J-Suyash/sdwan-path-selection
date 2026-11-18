@@ -73,3 +73,34 @@ qdisc tbf 5: parent 10:1 limit 100000b
  backlog 250b 1p requeues 0
 """
     assert parse_qdisc_backlog_bytes(output) == 12_500
+def test_qdisc_backlog_parses_tc_suffix_units():
+    # tc prints a suffix only on exact multiples; suffixed values are exact.
+    assert parse_qdisc_backlog_bytes(" backlog 241Kb 163p requeues 0\n") == 241 * 1024
+    assert parse_qdisc_backlog_bytes(" backlog 2Mb 100p requeues 0\n") == 2 * 1024**2
+    assert parse_qdisc_backlog_bytes(" backlog 1Gb 100p requeues 0\n") == 1024**3
+    assert parse_qdisc_backlog_bytes(" backlog 1.5Kb 10p requeues 0\n") == 1536
+
+
+def test_qdisc_backlog_mixed_units_take_max():
+    output = """
+qdisc tbf 5: root
+ backlog 97770b 65p requeues 0
+qdisc netem 10: parent 5:1
+ backlog 94Kb 65p requeues 0
+"""
+    assert parse_qdisc_backlog_bytes(output) == 97770
+
+
+def test_qdisc_backlog_zero_and_absent():
+    assert parse_qdisc_backlog_bytes(" backlog 0b 0p requeues 0\n") == 0
+    assert parse_qdisc_backlog_bytes("qdisc netem 10: root\n Sent 0 bytes 0 pkt\n") == 0
+
+
+def test_qdisc_backlog_rejects_unknown_unit():
+    with pytest.raises(ValueError, match="unknown tc backlog unit"):
+        parse_qdisc_backlog_bytes(" backlog 12Tb 3p requeues 0\n")
+
+
+def test_qdisc_backlog_rejects_malformed_token():
+    with pytest.raises(ValueError, match="unparseable tc backlog token"):
+        parse_qdisc_backlog_bytes(" backlog notanumber requeues 0\n")

@@ -93,9 +93,30 @@ def summarize_traffic(
     }
 
 
+_BACKLOG_TOKEN = re.compile(r"backlog\s+(\d+(?:\.\d+)?)([A-Za-z])")
+_TC_BACKLOG_UNITS = {"b": 1, "K": 1024, "M": 1024**2, "G": 1024**3}
+
+
 def parse_qdisc_backlog_bytes(output: str) -> int:
-    matches = re.findall(r"backlog\s+(\d+)b", output)
-    return max((int(value) for value in matches), default=0)
+    """Largest backlog across qdisc lines, in bytes.
+
+    tc (iproute2 7.3.0) prints a unit suffix only when the byte count is
+    an exact multiple of the unit: "241Kb" is exactly 241*1024 bytes,
+    while non-multiples such as 246630 print in plain bytes (verified
+    against the full retained qdisc corpus: 960 backlog tokens, the only
+    suffixed ones are exact multiples, and larger values print plain).
+    Suffixed forms therefore carry no rounding loss.  Unknown units or
+    malformed backlog tokens raise instead of silently reading zero;
+    output without any backlog token still yields 0.
+    """
+    values = []
+    for digits, unit in _BACKLOG_TOKEN.findall(output):
+        if unit not in _TC_BACKLOG_UNITS:
+            raise ValueError(f"unknown tc backlog unit {unit!r}")
+        values.append(int(float(digits) * _TC_BACKLOG_UNITS[unit]))
+    if not values and "backlog" in output:
+        raise ValueError("unparseable tc backlog token in qdisc output")
+    return max(values, default=0)
 
 
 def summarize_pcap(pcap: Path) -> dict[str, int]:

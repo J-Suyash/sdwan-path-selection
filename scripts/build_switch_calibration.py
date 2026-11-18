@@ -48,7 +48,10 @@ BUCKET_LABELS = ("small", "medium", "large", "huge")
 
 
 def bucket_values(series: pd.Series, edges: list[float], labels: tuple[str, ...]) -> pd.Series:
-    return pd.cut(series, bins=edges, labels=labels, right=True)
+    # include_lowest: a measured value exactly equal to the first edge
+    # (e.g. queue_occupancy_frac 0.0) belongs to the first bucket instead
+    # of falling outside every bin and surfacing as a NaN group key.
+    return pd.cut(series, bins=edges, labels=labels, right=True, include_lowest=True)
 
 
 def with_buckets(frame: pd.DataFrame) -> pd.DataFrame:

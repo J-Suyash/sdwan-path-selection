@@ -66,3 +66,30 @@ def test_in_flight_bucket_assignment():
     bucketed = with_buckets(frame)
     assert (bucketed["in_flight_bucket"] == "large").all()
     assert (bucketed["occupancy_bucket"] == "empty").all()
+def test_bucket_boundaries_zero_inclusive():
+    import pandas as pd
+
+    from scripts.build_switch_calibration import bucket_values
+
+    occ = pd.Series([0.0, 0.05, 0.050001, 0.3, 0.8, 1.0])
+    labels = bucket_values(
+        occ, [0.0, 0.05, 0.3, 0.8, 1.0001], ("empty", "low", "high", "full")
+    ).astype(str)
+    assert list(labels) == ["empty", "empty", "low", "low", "high", "full"]
+
+    inflight = pd.Series([0.0, 1.5, 10.5, 50.5, 100.0])
+    labels = bucket_values(
+        inflight, [0.0, 1.5, 10.5, 50.5, float("inf")], ("small", "medium", "large", "huge")
+    ).astype(str)
+    assert list(labels) == ["small", "small", "medium", "large", "huge"]
+
+
+def test_zero_occupancy_joins_empty_bucket_group():
+    import numpy as np
+
+    frame = _raw_frame(4)
+    frame.loc[0, "queue_occupancy_frac"] = 0.0
+    bucketed = with_buckets(frame)
+    assert (bucketed["occupancy_bucket"] == "empty").all()
+    assert not bucketed["occupancy_bucket"].isna().any()
+    assert not (bucketed["occupancy_bucket"] == "nan").any()
