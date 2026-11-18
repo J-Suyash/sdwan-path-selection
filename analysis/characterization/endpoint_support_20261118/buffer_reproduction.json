@@ -1,0 +1,13 @@
+{
+  "label": "offline_buffer_reproduction_not_new_network_run",
+  "python": "3.14.10 (main, Nov 13 2026, 15:10:24) [GCC 16.2.1 20260810]",
+  "io_DEFAULT_BUFFER_SIZE": 131072,
+  "observed_receiver_rows": 54273,
+  "nic_packets_written_offline": 55900,
+  "visible_rows_before_explicit_flush": 54273,
+  "visible_rows_after_explicit_flush": 55900,
+  "observed_sequence_list_equals_unflushed_visible_prefix": true,
+  "unflushed_bytes": 66707,
+  "scope": "synthetic timestamps preserve field widths only; no inferred packet delay or receiver receipt time",
+  "interpretation": "an abrupt receiver termination can lose its unwritten CSV buffer; matching prefix is direct evidence for a logging artifact, not evidence of socket packet loss"
+}

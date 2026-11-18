@@ -6,6 +6,7 @@ import argparse
 import csv
 import json
 import socket
+import signal
 import struct
 import time
 from pathlib import Path
@@ -154,11 +155,23 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def graceful_receiver_stop(signum, frame) -> None:
+    """Unwind receiver file contexts so buffered CSV records are flushed.
+
+    Default SIGTERM terminates without Python context-manager cleanup.
+    This handler does not reconstruct records or promise delivery; it
+    preserves records already passed to the CSV writer.
+    """
+    raise SystemExit(0)
+
+
 def main() -> None:
     args = parse_args()
     if args.packet_bytes < HEADER.size:
         raise ValueError("--packet-bytes is smaller than the timestamp header")
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    if args.role == "receiver":
+        signal.signal(signal.SIGTERM, graceful_receiver_stop)
     handler = globals()[f"run_{args.transport}_{args.role}"]
     handler(args)
 

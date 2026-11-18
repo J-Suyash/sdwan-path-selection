@@ -1,0 +1,22 @@
+{
+  "label": "actual_receiver_source_fake_socket_SIGTERM_offline_no_network",
+  "python": "3.14.10 (main, Nov 13 2026, 15:10:24) [GCC 16.2.1 20260810]",
+  "reports": [
+    {
+      "mode": "default",
+      "returncode": -15,
+      "rows_after_signal": 54273,
+      "observed_sequence_list_equal": true,
+      "all_nic_sequences_preserved": false
+    },
+    {
+      "mode": "graceful",
+      "returncode": 0,
+      "rows_after_signal": 55900,
+      "observed_sequence_list_equal": false,
+      "all_nic_sequences_preserved": true
+    }
+  ],
+  "scope": "the existing receiver source was exercised with synthetic receive timestamps and existing capture sequence IDs; no real socket, traffic or new evidence of historical recv calls",
+  "finding": "default SIGTERM reproduces the observed CSV prefix; an exception-based graceful handler exits the file context and preserves all records"
+}

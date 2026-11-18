@@ -1,0 +1,188 @@
+{
+  "label": "single_run_engineering_characterization_no_acceptance",
+  "source": "testbed/outputs/ce01-matched-endpoint-support",
+  "run_returncode": 0,
+  "window": {
+    "actual_event_offset_s": 6.003954309009714,
+    "application_summary": {
+      "app_loss_frac": 0.2763696484046879,
+      "app_payload_throughput_mbps": 37.96801772327044,
+      "basis": "application sequence logs, not capture or qdisc loss; packet-to-fluid equivalence not assumed",
+      "measurement_window_s": 16.009727040014695,
+      "received_frames": 54273,
+      "received_frames_after_window": 0,
+      "sent_frames": 75001,
+      "sent_frames_outside_window": 0,
+      "t0_monotonic_s": 214626.901439468,
+      "t1_monotonic_s": 214642.911166508
+    },
+    "drain_termination": "drained",
+    "host_sampling_lateness_s": 0.009727040014695376,
+    "in_flight_caveat": "zero qdisc backlog is not proof that every dequeued packet reached the application",
+    "inspections": [
+      {
+        "drained": false,
+        "nominal_offset_s": 15,
+        "paths": {
+          "bb": {
+            "backlog_packets": 0,
+            "wire_backlog_bytes": 0
+          },
+          "five_g": {
+            "backlog_packets": 508,
+            "wire_backlog_bytes": 732536
+          },
+          "leo": {
+            "backlog_packets": 0,
+            "wire_backlog_bytes": 0
+          }
+        },
+        "sample_ended_monotonic_s": 214641.911410674,
+        "sample_started_monotonic_s": 214641.901525076,
+        "summed_wire_backlog_bytes": 732536
+      },
+      {
+        "drained": true,
+        "nominal_offset_s": 16,
+        "paths": {
+          "bb": {
+            "backlog_packets": 0,
+            "wire_backlog_bytes": 0
+          },
+          "five_g": {
+            "backlog_packets": 0,
+            "wire_backlog_bytes": 0
+          },
+          "leo": {
+            "backlog_packets": 0,
+            "wire_backlog_bytes": 0
+          }
+        },
+        "sample_ended_monotonic_s": 214642.911166508,
+        "sample_started_monotonic_s": 214642.901564226,
+        "summed_wire_backlog_bytes": 0
+      }
+    ],
+    "spec": {
+      "capacity_scale": 0.970873786407767,
+      "drain_bound_s_unrounded": 4.8058976,
+      "event_s": 6.0,
+      "inspection_interval_s": 1.0,
+      "interpretation": "ce01 sustained capacity floor from event to end is a working interpretation, not recovered original intent",
+      "max_episode_s": 19,
+      "payload_packet_bytes": 1400,
+      "send_duration_s": 14.0,
+      "wire_packet_bytes": 1442
+    },
+    "t0_monotonic_s": 214626.901439468,
+    "t1_monotonic_s": 214642.911166508
+  },
+  "captures_full_recording_not_matched_epoch_filtered": {
+    "traffic": {
+      "packets": 55900,
+      "first_epoch_s": 1794997132.549065,
+      "last_epoch_s": 1794997147.711996,
+      "span_s": 15.162930965423584
+    },
+    "prequeue": {
+      "packets": 75001,
+      "first_epoch_s": 1794997132.51076,
+      "last_epoch_s": 1794997146.510529,
+      "span_s": 13.99976897239685
+    },
+    "postqueue": {
+      "packets": 55900,
+      "first_epoch_s": 1794997132.548432,
+      "last_epoch_s": 1794997147.711993,
+      "span_s": 15.16356086730957
+    }
+  },
+  "capture_logs": {
+    "tcpdump-prequeue.log": "tcpdump: listening on h1-eth0, link-type EN10MB (Ethernet), snapshot length 128 bytes\n75001 packets captured\n75001 packets received by filter\n0 packets dropped by kernel\n",
+    "tcpdump-postqueue.log": "tcpdump: listening on s_branch-eth3, link-type EN10MB (Ethernet), snapshot length 128 bytes\n55900 packets captured\n55900 packets received by filter\n0 packets dropped by kernel\n",
+    "tcpdump.log": "tcpdump: listening on server-eth0, link-type EN10MB (Ethernet), snapshot length 128 bytes\n55900 packets captured\n55900 packets received by filter\n0 packets dropped by kernel\n"
+  },
+  "qdisc": {
+    "delivered_packets": 55900,
+    "dropped_packets": 19101,
+    "sent_wire_bytes": 80607800,
+    "wire_bytes_per_delivered_packet": 1442.0,
+    "conservation": true,
+    "loss_frac_full_drained_run": 0.2546766043119425
+  },
+  "nic_to_app_gap": 1627,
+  "fluid": {
+    "window": {
+      "run_id": "r00",
+      "full_offered_bytes": 105000000.0,
+      "full_delivered_bytes": 78501213.59223302,
+      "full_dropped_bytes": 26498786.407766994,
+      "post_offered_bytes": 60000000.0,
+      "post_delivered_bytes": 33501213.592233006,
+      "post_dropped_bytes": 26498786.407766994,
+      "end_residual_occupancy_bytes": 0.0,
+      "steps_run": 16,
+      "measurement_window_s": 16.0,
+      "drain_termination": "drained",
+      "drain_steps_used": 2
+    },
+    "loss_frac": 0.25236939435968564
+  },
+  "descriptive_network_minus_fluid_loss_fraction": 0.002307209952256861,
+  "descriptive_network_minus_fluid_loss_percentage_points": 0.23072099522568612,
+  "throughput_comparison_status": "application-window rate is not NIC-window rate; captures use epoch timestamps and matched endpoint uses monotonic timestamps, so no exact matched-window NIC rate is claimed without an explicit clock mapping",
+  "counter_capture_conclusion": "full drained-run qdisc packet conservation and capture totals agree; full-capture delivered count is not silently substituted for matched-window app count",
+  "scope": "one original-input sustained-sag engineering support run, no repetitions, uncertainty estimate, threshold tuning, boundary validation or Stage7 acceptance",
+  "cleanup": {
+    "s1_unchanged": true,
+    "run_bridges_absent": true,
+    "netns_veth_absent": true,
+    "bridges": "s1\n",
+    "listeners": ""
+  },
+  "preflight": {
+    "loadavg": [
+      2.341796875,
+      3.27734375,
+      3.20556640625
+    ],
+    "cpu_count": 16,
+    "hashes": {
+      "testbed/scenarios/case_drafts/ce01.json": "f4944ae2e2db1c66c831b3042df04059702d33d9bf5138c3852ad41003e741e8",
+      "testbed/run_switch_calibration.py": "6da834ff1666d2809a67fdb3fa03ea9ea52e4cea6a624ce4ce15f43c6856452b",
+      "testbed/matched_window.py": "9552a2c35b7b133048ce2e563278331f4f9d3f64c1c6ebb85579bae194b5e1ad",
+      "testbed/traffic.py": "818915ecefa49dff8adb415b719b09b34df95116018245693561e6a586e61c46"
+    },
+    "git_head": "831c46731d9290f1eae1ddf133cfff62ddba4165"
+  },
+  "hashes": {
+    "dry_run_plan.json": "bc806eae48c9a5c8c1e972ab43b14e6128684fc9192c029cbccf5f1bf6a12715",
+    "run.log": "0272929c3f091b9b76e112978d214a19f2e6eaa39a86bed5f1d73c6e8b9d0592",
+    "privileged_preflight.json": "2ab574441966235aae02be9d3fd10c4c00b4c65e8118a8843d929a783645021f",
+    "measurement_started.json": "7fdb311b3b42b3741a342c443b3ea3b47336cc96fe037793fb2bbb48144685f2",
+    "switch_metrics_raw.csv": "687ce1f5e1abd18f28206414087c9c14c82d93ef07e1af2d7d66278b96754468",
+    "run_manifest.json": "cd2a435415a317d05260457800b7a38826a3d805c6fc72b2316f15bc3ef7dda2",
+    "execution_result.json": "a31d4edde77ead1460370be52c92eea3f40099503885117711439694197c92c5",
+    "privileged_postflight.json": "7ac42a61565ce15a699dd628ba781f279941addeaf543f4e9a832ae5ba7c3a49",
+    "e00-r00/initial_qdiscs.json": "1afac21e2f84d7880775047a17d89a2a4a8857434cba1e3f71932f30d9934a61",
+    "e00-r00/restored_initial_qdiscs.json": "9bc9af8855e2cde0e3cf72e84e5227e0fc3523b092738daf0817d14a6d04fe5b",
+    "e00-r00/receiver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "e00-r00/tcpdump-prequeue.log": "df9fef54e975d11efde22e04177e710883a34336c8ed1dd900322bf6b87dd1fa",
+    "e00-r00/tcpdump-postqueue.log": "933c16abab1801253204c393ad841b928f7a0e91b038561684522896d452b663",
+    "e00-r00/tcpdump.log": "05e0d4a97f17d064340e833650973a04c0905af06b14ad1ed4efaebaeb8ef33e",
+    "e00-r00/backlog-series.log": "a38daa100695da8f6266e65572c2b675c6ca82961cc4a47ac5d4312f8ef02d83",
+    "e00-r00/traffic.pcap": "5d42629ee3862f88cf6aab27f375a13e477f35e1f6a83e282bc00919c79e9067",
+    "e00-r00/postqueue.pcap": "2119ef906153f758cf06c2b146ab72f2a342a7a3d629bd9dc9bee06dcdd24399",
+    "e00-r00/prequeue.pcap": "3895d4af8889e266f2d71a889c47d08d945ae1c04b743876bbf426ebd098d05d",
+    "e00-r00/receiver.csv": "80f0e76e24d22166fe0cda69741dcf4e4ecea14ffd54a416c7ad81e472827651",
+    "e00-r00/sender.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "e00-r00/sender.csv": "524540f33e766faffa80e482b24bdf08d5dd279375046e5c112210e0b9a2e887",
+    "e00-r00/sender_start.json": "d18b8e806764ee870d5a3b0fc14dd33b16939deaf0ad3a09261d24d2b367a359",
+    "e00-r00/qdisc_before.txt": "d8f3969d8a53ccb68b6e9e65354cc963d4fd6c2a3d46479c66318a3907998171",
+    "e00-r00/drain_qdisc_15.json": "095b202980ec8c1ab2620573c55e3cdd779ef3eaca4e50193b23f6fb6b06c55b",
+    "e00-r00/drain_qdisc_16.json": "b0072f8966b0fc21b97a12f2313066be5b069344fee1a99ffd72c8ee274b7729",
+    "e00-r00/qdisc_after.txt": "9ca11eaaff6f1ba949c01a453b91960615ee8cdbcf01fb63c90a16afb575173b",
+    "e00-r00/matched_window.json": "c719c2c27e77524254b2a3083533834b038dd7b199f8738cd799166d875d30ee",
+    "e00-r00/metrics.json": "18997467e7ab9033dac41eecb7383c14d277f631092da53ac8931505a4d0b2d9"
+  }
+}
