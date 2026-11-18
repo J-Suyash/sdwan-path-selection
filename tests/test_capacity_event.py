@@ -110,3 +110,94 @@ def test_describe_event_both_kinds(tmp_path):
     capacity, switch = scenario.events
     assert describe_event(capacity) == "bulk_udp_60 five_g capacity->30.0Mbps"
     assert describe_event(switch) == "bulk_udp_60 bb->five_g"
+
+class _FakeIntf:
+    """Records issued shell commands; no tc execution."""
+
+    def __init__(self, name):
+        self.name = name
+        self.cmds = []
+
+    def cmd(self, command):
+        self.cmds.append(command)
+        return ""
+
+
+class _FakeLink:
+    def __init__(self):
+        self.intf1 = _FakeIntf("branch-eth2")
+        self.intf2 = _FakeIntf("hub-eth2")
+
+
+def _install_mininet_stub():
+    """sdwan_topology imports mininet, which only exists in the system
+    python. These unit tests exercise pure-python command construction, so
+    a stub package with placeholder classes is enough - no Mininet runtime.
+    """
+    import sys
+    import types
+
+    if "mininet" in sys.modules:
+        return
+    package = types.ModuleType("mininet")
+    package.__path__ = []
+    sys.modules["mininet"] = package
+    for name, attrs in {
+        "mininet.cli": ["CLI"],
+        "mininet.link": ["TCLink"],
+        "mininet.net": ["Mininet"],
+        "mininet.node": ["Controller", "OVSSwitch"],
+    }.items():
+        module = types.ModuleType(name)
+        for attr in attrs:
+            setattr(module, attr, type(attr, (), {}))
+        sys.modules[name] = module
+
+
+def _bare_testbed(path_links):
+    _install_mininet_stub()
+    from testbed.sdwan_topology import TestbedNetwork
+
+    testbed = object.__new__(TestbedNetwork)
+    object.__setattr__(testbed, "scenario", load_scenario(
+        "testbed/scenarios/smoke.json"))
+    object.__setattr__(testbed, "path_links", path_links)
+    return testbed
+
+
+def test_set_path_capacity_changes_tbf_in_place_on_both_interfaces():
+    link = _FakeLink()
+    testbed = _bare_testbed({"five_g": link})
+    testbed.set_path_capacity("five_g", 30.0)
+    for intf in (link.intf1, link.intf2):
+        assert len(intf.cmds) == 1
+        cmd = intf.cmds[0]
+        # in-place rate change: never delete/rebuild the root qdisc, so
+        # backlog queued before the sag survives the capacity change
+        assert "qdisc change" in cmd
+        assert "qdisc del" not in cmd
+        assert "root handle 5:" in cmd
+        assert "rate 30.0Mbit" in cmd
+        # burst/latency mirror TCIntf.bwCmds: burst 15000, latency 120/bw ms
+        assert "burst 15000" in cmd
+        assert "latency 4.0ms" in cmd
+        assert cmd.startswith(f"tc qdisc change dev {intf.name} ")
+
+
+def test_set_path_capacity_raises_on_tc_error():
+    class _BadIntf(_FakeIntf):
+        def cmd(self, command):
+            return "RTNETLINK answers: No such file or directory"
+
+    link = _FakeLink()
+    link.intf1 = _BadIntf("branch-eth2")
+    testbed = _bare_testbed({"five_g": link})
+    with pytest.raises(RuntimeError, match="capacity change failed"):
+        testbed.set_path_capacity("five_g", 30.0)
+
+
+def test_set_path_capacity_unknown_path_raises_keyerror():
+    testbed = _bare_testbed({"five_g": _FakeLink()})
+    with pytest.raises(KeyError):
+        testbed.set_path_capacity("bb", 10.0)
+

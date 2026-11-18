@@ -50,26 +50,36 @@ class TestbedNetwork:
         return self.branch.cmd(f"tc -s qdisc show dev {shlex.quote(intf.name)}")
 
     def set_path_capacity(self, path: str, capacity_mbps: float) -> None:
-        """Change a path link's rate limit at the event point.
+        """Change a path link's TBF rate in place at the event point.
 
-        TCIntf.config rebuilds the qdisc stack from the parameters it is
-        given (verified against the installed mininet/link.py), so every
-        original impairment is re-supplied here: passing bw alone would
-        silently drop the path's delay/jitter/loss and queue limit. Both
-        link interfaces are reconfigured, matching build-time shaping.
+        Issues `tc qdisc change` on the root TBF (handle 5:) that
+        build_network installs with use_tbf=True. Unlike TCIntf.config -
+        which deletes and rebuilds the root qdisc - `change` modifies the
+        TBF rate without flushing queued backlog, which is what makes a
+        transient-sag experiment meaningful: the pre-sag queue survives
+        the capacity drop. The netem child qdisc (delay/jitter/loss/limit)
+        is untouched, so impairments and the queue limit stay exactly as
+        configured at build time.
+
+        burst (15000 bytes) and the latency formula (120/bw ms) mirror
+        TCIntf.bwCmds in the installed mininet/link.py so the qdisc
+        matches what a fresh build at this rate would produce. Applied to
+        both link interfaces, matching build-time shaping. Coupled to the
+        use_tbf=True build path: the root handle 5: must exist.
         """
-        spec = self.scenario.paths[path]
-        kwargs = dict(
-            bw=capacity_mbps,
-            delay=f"{spec.one_way_delay_ms}ms",
-            jitter=f"{spec.jitter_ms}ms",
-            loss=spec.loss_pct,
-            use_tbf=True,
-            max_queue_size=self.scenario.queue_limit_for(path),
-        )
+        latency_ms = 15.0 * 8 / capacity_mbps
         link = self.path_links[path]
-        link.intf1.config(**kwargs)
-        link.intf2.config(**kwargs)
+        for intf in (link.intf1, link.intf2):
+            cmd = (
+                f"tc qdisc change dev {shlex.quote(intf.name)} root handle 5: "
+                f"tbf rate {capacity_mbps}Mbit burst 15000 "
+                f"latency {latency_ms}ms"
+            )
+            output = intf.cmd(cmd)
+            if output.strip():
+                raise RuntimeError(
+                    f"capacity change failed on {intf.name}: {output.strip()}"
+                )
 
     def _install_route(self, event: SwitchEvent, path: str, *, operation: str) -> None:
         flows = route_flows(
