@@ -1,0 +1,290 @@
+{
+  "basis": "exploratory sampled-clock envelope; boundary_safety_s=0.001 declared; jump alarm 0.005s makes timing unavailable; counts are conditional, never validated bounds",
+  "runs": {
+    "r01": {
+      "t0_monotonic_s": 216361.439642464,
+      "t1_monotonic_s": 216377.452221688,
+      "window_s": 16.012579223985085,
+      "n_samples": 7,
+      "traffic.pcap": {
+        "n_frames": 55916,
+        "strict_lower_bound_count": 55916,
+        "sampled_envelope_upper_bound_count": 55916,
+        "boundary_uncertain_count": 0,
+        "t0_sampled_epoch_interval_s": [
+          1794998866.342601,
+          1794998867.0505474
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794998883.0490174,
+          1794998883.0615032
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      },
+      "postqueue.pcap": {
+        "n_frames": 55916,
+        "strict_lower_bound_count": 55916,
+        "sampled_envelope_upper_bound_count": 55916,
+        "boundary_uncertain_count": 0,
+        "t0_sampled_epoch_interval_s": [
+          1794998866.342601,
+          1794998867.0505474
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794998883.0490174,
+          1794998883.0615032
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      },
+      "prequeue.pcap": {
+        "n_frames": 75000,
+        "strict_lower_bound_count": 74985,
+        "sampled_envelope_upper_bound_count": 75000,
+        "boundary_uncertain_count": 15,
+        "t0_sampled_epoch_interval_s": [
+          1794998866.342601,
+          1794998867.0505474
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794998883.0490174,
+          1794998883.0615032
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      }
+    },
+    "r02": {
+      "t0_monotonic_s": 216509.264209441,
+      "t1_monotonic_s": 216525.277484625,
+      "window_s": 16.013275183999212,
+      "n_samples": 7,
+      "traffic.pcap": {
+        "n_frames": 55898,
+        "strict_lower_bound_count": 55898,
+        "sampled_envelope_upper_bound_count": 55898,
+        "boundary_uncertain_count": 0,
+        "t0_sampled_epoch_interval_s": [
+          1794999013.975581,
+          1794999014.8751893
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999030.8735993,
+          1794999030.8867686
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      },
+      "postqueue.pcap": {
+        "n_frames": 55898,
+        "strict_lower_bound_count": 55898,
+        "sampled_envelope_upper_bound_count": 55898,
+        "boundary_uncertain_count": 0,
+        "t0_sampled_epoch_interval_s": [
+          1794999013.975581,
+          1794999014.8751893
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999030.8735993,
+          1794999030.8867686
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      },
+      "prequeue.pcap": {
+        "n_frames": 75001,
+        "strict_lower_bound_count": 74985,
+        "sampled_envelope_upper_bound_count": 75001,
+        "boundary_uncertain_count": 16,
+        "t0_sampled_epoch_interval_s": [
+          1794999013.975581,
+          1794999014.8751893
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999030.8735993,
+          1794999030.8867686
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      }
+    },
+    "r03": {
+      "t0_monotonic_s": 216620.347314557,
+      "t1_monotonic_s": 216636.361446241,
+      "window_s": 16.014131684001768,
+      "n_samples": 7,
+      "traffic.pcap": {
+        "n_frames": 55917,
+        "strict_lower_bound_count": 55917,
+        "sampled_envelope_upper_bound_count": 55917,
+        "boundary_uncertain_count": 0,
+        "t0_sampled_epoch_interval_s": [
+          1794999125.1755872,
+          1794999125.9576533
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999141.9567125,
+          1794999141.9707303
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      },
+      "postqueue.pcap": {
+        "n_frames": 55917,
+        "strict_lower_bound_count": 55917,
+        "sampled_envelope_upper_bound_count": 55917,
+        "boundary_uncertain_count": 0,
+        "t0_sampled_epoch_interval_s": [
+          1794999125.1755872,
+          1794999125.9576533
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999141.9567125,
+          1794999141.9707303
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      },
+      "prequeue.pcap": {
+        "n_frames": 75001,
+        "strict_lower_bound_count": 74989,
+        "sampled_envelope_upper_bound_count": 75001,
+        "boundary_uncertain_count": 12,
+        "t0_sampled_epoch_interval_s": [
+          1794999125.1755872,
+          1794999125.9576533
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999141.9567125,
+          1794999141.9707303
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      }
+    },
+    "r04": {
+      "t0_monotonic_s": 216754.550269569,
+      "t1_monotonic_s": 216770.565914531,
+      "window_s": 16.015644961997168,
+      "n_samples": 7,
+      "traffic.pcap": {
+        "n_frames": 55903,
+        "strict_lower_bound_count": 55903,
+        "sampled_envelope_upper_bound_count": 55903,
+        "boundary_uncertain_count": 0,
+        "t0_sampled_epoch_interval_s": [
+          1794999259.3739963,
+          1794999260.1702144
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999276.1596699,
+          1794999276.1751988
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      },
+      "postqueue.pcap": {
+        "n_frames": 55903,
+        "strict_lower_bound_count": 55903,
+        "sampled_envelope_upper_bound_count": 55903,
+        "boundary_uncertain_count": 0,
+        "t0_sampled_epoch_interval_s": [
+          1794999259.3739963,
+          1794999260.1702144
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999276.1596699,
+          1794999276.1751988
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      },
+      "prequeue.pcap": {
+        "n_frames": 75001,
+        "strict_lower_bound_count": 74940,
+        "sampled_envelope_upper_bound_count": 75001,
+        "boundary_uncertain_count": 61,
+        "t0_sampled_epoch_interval_s": [
+          1794999259.3739963,
+          1794999260.1702144
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999276.1596699,
+          1794999276.1751988
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      }
+    },
+    "r05": {
+      "t0_monotonic_s": 216845.161516772,
+      "t1_monotonic_s": 216861.173217893,
+      "window_s": 16.011701120994985,
+      "n_samples": 7,
+      "traffic.pcap": {
+        "n_frames": 55905,
+        "strict_lower_bound_count": 55905,
+        "sampled_envelope_upper_bound_count": 55905,
+        "boundary_uncertain_count": 0,
+        "t0_sampled_epoch_interval_s": [
+          1794999350.0326595,
+          1794999350.7753482
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999366.7709088,
+          1794999366.7824993
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      },
+      "postqueue.pcap": {
+        "n_frames": 55905,
+        "strict_lower_bound_count": 55905,
+        "sampled_envelope_upper_bound_count": 55905,
+        "boundary_uncertain_count": 0,
+        "t0_sampled_epoch_interval_s": [
+          1794999350.0326595,
+          1794999350.7753482
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999366.7709088,
+          1794999366.7824993
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      },
+      "prequeue.pcap": {
+        "n_frames": 75001,
+        "strict_lower_bound_count": 74970,
+        "sampled_envelope_upper_bound_count": 75001,
+        "boundary_uncertain_count": 31,
+        "t0_sampled_epoch_interval_s": [
+          1794999350.0326595,
+          1794999350.7753482
+        ],
+        "t1_sampled_epoch_interval_s": [
+          1794999366.7709088,
+          1794999366.7824993
+        ],
+        "declared_boundary_safety_s": 0.001,
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval"
+      }
+    }
+  }
+}

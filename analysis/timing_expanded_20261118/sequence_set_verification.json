@@ -1,0 +1,50 @@
+{
+  "meaning": "sequence-set equality between server-eth0 capture payloads and receiver application log; verifies receive logging completeness, not socket delivery semantics beyond capture",
+  "runs": {
+    "r01": {
+      "capture_seq_count": 55916,
+      "app_seq_count": 55916,
+      "sets_equal": true,
+      "only_in_capture": [],
+      "only_in_capture_count": 0,
+      "only_in_app": [],
+      "only_in_app_count": 0
+    },
+    "r02": {
+      "capture_seq_count": 55898,
+      "app_seq_count": 55898,
+      "sets_equal": true,
+      "only_in_capture": [],
+      "only_in_capture_count": 0,
+      "only_in_app": [],
+      "only_in_app_count": 0
+    },
+    "r03": {
+      "capture_seq_count": 55917,
+      "app_seq_count": 55917,
+      "sets_equal": true,
+      "only_in_capture": [],
+      "only_in_capture_count": 0,
+      "only_in_app": [],
+      "only_in_app_count": 0
+    },
+    "r04": {
+      "capture_seq_count": 55903,
+      "app_seq_count": 55903,
+      "sets_equal": true,
+      "only_in_capture": [],
+      "only_in_capture_count": 0,
+      "only_in_app": [],
+      "only_in_app_count": 0
+    },
+    "r05": {
+      "capture_seq_count": 55905,
+      "app_seq_count": 55905,
+      "sets_equal": true,
+      "only_in_capture": [],
+      "only_in_capture_count": 0,
+      "only_in_app": [],
+      "only_in_app_count": 0
+    }
+  }
+}
