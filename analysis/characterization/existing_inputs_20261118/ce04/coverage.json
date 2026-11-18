@@ -1,0 +1,17 @@
+{
+  "scenario": "cross_engine_ce04_switch_transient_video_udp",
+  "required_metrics": {
+    "interruption_s": {
+      "status": "expressible"
+    },
+    "loss_frac": {
+      "status": "expressible"
+    },
+    "reordering_frac": {
+      "status": "unsupported",
+      "reason": "impossible in the fluid model class: no packets, no packet order. Reordering enters only as a calibrated jitter input (env/sdwan_env.py:270). Requires an owner/supervisor model-scope decision."
+    }
+  },
+  "fail_closed": true,
+  "exit_code": 2
+}

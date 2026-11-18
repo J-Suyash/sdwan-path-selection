@@ -1,0 +1,10 @@
+cal_v1_full planned_runs 120 metrics 120 methods {'ovs-ofctl-openflow13-mod-flows': 120} scenario testbed/scenarios/switch_calibration_v1.json
+cal_v2_perpath planned_runs 120 metrics 120 methods {'ovs-ofctl-openflow13-mod-flows': 120} scenario testbed/scenarios/switch_calibration_v2.json
+ce01-matched-endpoint-dryrun planned_runs 1 metrics 0 methods {} scenario None
+ce01-smoke planned_runs 1 metrics 1 methods {'tc-tbf-reconfigure': 1} scenario /tmp/ce-drafts/ce01.json
+  recorded plans [{'directory': '/home/sxtr/Projects/Major Project-instinct-recovery/testbed/outputs/ce01-smoke/e00-r00', 'event_index': 0, 'new_path': 'five_g', 'old_path': 'five_g', 'repetition': 0, 'run_id': 'e00-r00', 'workload': 'bulk_udp_60'}]
+rate-diag-p1 planned_runs 1 metrics 1 methods {'tc-tbf-reconfigure': 1} scenario testbed/outputs/rate-diag-p1/scenario.json
+  recorded plans [{'directory': 'testbed/outputs/rate-diag-p1/e00-r00', 'event_index': 0, 'new_path': 'bb', 'old_path': 'bb', 'repetition': 0, 'run_id': 'e00-r00', 'workload': 'bulk'}]
+smoke-20261118-033510 planned_runs 1 metrics 1 methods {'ovs-ofctl-openflow13-mod-flows': 1} scenario testbed/scenarios/smoke.json
+switch_calibration_v2.json events 24 capacity_events 0
+smoke.json events 1 capacity_events 0

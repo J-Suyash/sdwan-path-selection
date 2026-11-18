@@ -1,0 +1,1153 @@
+{
+  "label": "raw_unvalidated_scaffolding",
+  "purpose": "existing-input engineering characterization, never boundary validation or result acceptance",
+  "git_head": "7c62af15c903db2575e04bc925de528acfc666c0",
+  "harness_sha256": "440f05745d4ad6fed6e6cfae36845eef52087fa422ce72083e4845fe4b26360c",
+  "generator_sha256": "ade704e5b2e564bf8bbbd502440653799b9ee15021b473faf9f0de1e144b6412",
+  "cases_source_sha256": "a257cde8c8488be2d0ad102ef75b9828bd18755344a6dd04b5333383a0353198",
+  "calibration_heldout_separation": "no bands derived, no acceptance decisions; future calibration rules must freeze before held-out evaluation",
+  "privileged_execution": false,
+  "records": [
+    {
+      "scenario": "cross_engine_ce01_queue_saturation_udp",
+      "scenario_path": "testbed/scenarios/case_drafts/ce01.json",
+      "scenario_sha256": "f4944ae2e2db1c66c831b3042df04059702d33d9bf5138c3852ad41003e741e8",
+      "original_case": {
+        "id": "ce01_queue_saturation_udp",
+        "purpose": "queue saturation: offered rate exceeds sagged capacity on five_g; exercises buffer fill, overflow drops and queue-delay ceiling",
+        "workload": "bulk",
+        "transport": "udp",
+        "old_path": "bb",
+        "new_path": "five_g",
+        "rate_mbps": 60.0,
+        "capacity_floor_frac": 0.2,
+        "duration_s": 14.0,
+        "warmup_s": 6.0,
+        "packet_bytes": 1400,
+        "metrics": [
+          "queue_delay_ms",
+          "loss_frac",
+          "throughput_mbps"
+        ]
+      },
+      "paths": {
+        "bb": {
+          "capacity_mbps": 200.0,
+          "one_way_delay_ms": 93.7,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        },
+        "five_g": {
+          "capacity_mbps": 150.0,
+          "one_way_delay_ms": 37.5,
+          "jitter_ms": 1.0,
+          "loss_pct": 0.0
+        },
+        "leo": {
+          "capacity_mbps": 100.0,
+          "one_way_delay_ms": 31.0,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        }
+      },
+      "workload": {
+        "bulk_udp_60": {
+          "flow_type": "bulk",
+          "transport": "udp",
+          "client_ip": "10.0.0.14",
+          "server_port": 9999,
+          "rate_mbps": 60.0,
+          "duration_s": 14.0,
+          "warmup_s": 6.0,
+          "packet_bytes": 1400
+        }
+      },
+      "events": [
+        {
+          "workload": "bulk_udp_60",
+          "path": "five_g",
+          "capacity_mbps": 30.0
+        }
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "repetitions": 5,
+      "calibration_path": "data/switching_calibration_v2.csv",
+      "calibration_sha256": "d7ee403c19ca88c9773098bf08ec7c12fce81f38fb4f8013ddae2ca1e02a75a7",
+      "calibration_role": "existing switch-effect model input, not independent validation evidence",
+      "required_metrics": [
+        "queue_delay_ms",
+        "loss_frac",
+        "throughput_mbps"
+      ],
+      "drain_opt_in": true,
+      "load_stop_s": 14.0,
+      "event_s": 6.0,
+      "max_episode_s": 19,
+      "decision_interval_s": 1.0,
+      "nominal_capacity_mbps": {
+        "bb": 200.0,
+        "five_g": 150.0,
+        "leo": 100.0
+      },
+      "matched_payload_capacity_mbps": {
+        "bb": 194.1747572815534,
+        "five_g": 145.63106796116506,
+        "leo": 97.0873786407767
+      },
+      "capacity_scale": 0.970873786407767,
+      "queue_buffer_payload_bytes": {
+        "bb": 5832400.0,
+        "five_g": 4375000.0,
+        "leo": 2916200.0
+      },
+      "emulator_endpoints": "step 0 to first post-load step with summed residual below one packet, or scaled 3*max_buffer/min_service bound",
+      "runner_endpoint_status": "opt-in --matched-drain: common anchored inspection-grid definition, actual host sampling times and lateness reported; no denominator equality assumed",
+      "case_interpretation": "sustained sag from event to end is a working interpretation, not recovered original intent",
+      "send_duration_interpretation": "14s send duration; warmup/event at 6s is within it, not an additional 6s",
+      "candidate_estimators": "full episode per-step time weighting, including opt-in drain; informational, no estimator tuning or acceptance",
+      "status": "engineering_debug_only",
+      "exit_code": 2,
+      "coverage": {
+        "scenario": "cross_engine_ce01_queue_saturation_udp",
+        "required_metrics": {
+          "queue_delay_ms": {
+            "status": "unsupported",
+            "reason": "no per-packet queue delay on either engine: emulator has an aggregate occupancy/service drain estimate (env/sdwan_env.py:243-249); the Mininet residence-minus-base candidate (analysis/candidates/queue_delay_proxy.py) is UNVALIDATED (smoke: 28.0% negatives, reasons hypothesized, not established). Never emitted as an accepted queue_delay_ms."
+          },
+          "loss_frac": {
+            "status": "expressible"
+          },
+          "throughput_mbps": {
+            "status": "expressible"
+          }
+        },
+        "fail_closed": true,
+        "exit_code": 2
+      },
+      "run_manifest": {
+        "label": "raw_unvalidated_scaffolding",
+        "created_utc": "2026-11-18T10:12:30.190105+00:00",
+        "git_head": "7c62af15c903db2575e04bc925de528acfc666c0",
+        "scenario_path": "/home/sxtr/Projects/Major Project-instinct-recovery/testbed/scenarios/case_drafts/ce01.json",
+        "case_interpretation": "sustained sag from event to end is a working interpretation, not recovered original intent",
+        "scenario_sha256": "f4944ae2e2db1c66c831b3042df04059702d33d9bf5138c3852ad41003e741e8",
+        "calibration_path": "/home/sxtr/Projects/Major Project-instinct-recovery/data/switching_calibration_v2.csv",
+        "seed_base": 0,
+        "repetitions": 5,
+        "event_step": 6,
+        "post_warmup_window_s": 10.0,
+        "full_window_s": 16.0,
+        "drain_enabled": true,
+        "load_stop_s": 14.0,
+        "start_path": "five_g",
+        "windows": [
+          {
+            "run_id": "r00",
+            "full_offered_bytes": 105000000.0,
+            "full_delivered_bytes": 78501213.59223302,
+            "full_dropped_bytes": 26498786.407766994,
+            "post_offered_bytes": 60000000.0,
+            "post_delivered_bytes": 33501213.592233006,
+            "post_dropped_bytes": 26498786.407766994,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 16,
+            "measurement_window_s": 16.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 2
+          },
+          {
+            "run_id": "r01",
+            "full_offered_bytes": 105000000.0,
+            "full_delivered_bytes": 78501213.59223302,
+            "full_dropped_bytes": 26498786.407766994,
+            "post_offered_bytes": 60000000.0,
+            "post_delivered_bytes": 33501213.592233006,
+            "post_dropped_bytes": 26498786.407766994,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 16,
+            "measurement_window_s": 16.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 2
+          },
+          {
+            "run_id": "r02",
+            "full_offered_bytes": 105000000.0,
+            "full_delivered_bytes": 78501213.59223302,
+            "full_dropped_bytes": 26498786.407766994,
+            "post_offered_bytes": 60000000.0,
+            "post_delivered_bytes": 33501213.592233006,
+            "post_dropped_bytes": 26498786.407766994,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 16,
+            "measurement_window_s": 16.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 2
+          },
+          {
+            "run_id": "r03",
+            "full_offered_bytes": 105000000.0,
+            "full_delivered_bytes": 78501213.59223302,
+            "full_dropped_bytes": 26498786.407766994,
+            "post_offered_bytes": 60000000.0,
+            "post_delivered_bytes": 33501213.592233006,
+            "post_dropped_bytes": 26498786.407766994,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 16,
+            "measurement_window_s": 16.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 2
+          },
+          {
+            "run_id": "r04",
+            "full_offered_bytes": 105000000.0,
+            "full_delivered_bytes": 78501213.59223302,
+            "full_dropped_bytes": 26498786.407766994,
+            "post_offered_bytes": 60000000.0,
+            "post_delivered_bytes": 33501213.592233006,
+            "post_dropped_bytes": 26498786.407766994,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 16,
+            "measurement_window_s": 16.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 2
+          }
+        ],
+        "numeric_csv": "emulator_metrics.partial.csv",
+        "estimator_csv": null,
+        "capacity_convention": {
+          "scale_factor": 0.970873786407767,
+          "nominal_capacity_mbps": {
+            "bb": 200.0,
+            "five_g": 150.0,
+            "leo": 100.0
+          },
+          "matched_capacity_mbps": {
+            "bb": 194.1747572815534,
+            "five_g": 145.63106796116506,
+            "leo": 97.0873786407767
+          },
+          "event_capacity_scale_applied": true,
+          "applied": true,
+          "scope": "this setup only; working convention",
+          "basis": "P1 diagnostic 18 Nov 2026 (docs/cross_engine_p1_rate_diagnostic_results.md): qdisc counters 1442 B/pkt exact; service-slope and backlog-slope agreement with wire-length token accounting (exploratory, post-observation discriminators); no universal claim"
+        },
+        "limitations": [
+          "constant-series mode carries zero trace jitter; case jitter_ms has no emulator-side expression in this mode",
+          "emulator delay/jitter are per-step aggregates, not per-packet statistics; no estimator-level mapping is claimed",
+          "interruption_s is the calibrated switching-model effect; the validation plan expects a mismatch against the testbed (informative, kept out of the comparator CSV in emulator_informative.csv)",
+          "capacity events mutate the input series from the event step, mirroring the testbed tc rate change at the event point",
+          "numeric rows cover natively expressible metrics only, over the full-run window matching testbed/analyze.py (no warmup exclusion); coverage.json is the fail-closed record for everything else",
+          "delay units: testbed netem delay is one-way on a single link; constant_series rtt_ms = 2 * one_way_delay_ms so that the emulator 0.5 RTT factor reproduces the configured one-way delay",
+          "queue convention: testbed limit is netem/TBF max_queue_size in packets; matched buffer bytes = limit_packets * packet_bytes",
+          "capacity convention: matched capacities are scaled by packet_bytes/1442 (working convention for this setup, P1 exploratory evidence; see run_manifest.capacity_convention); nominal case values are in the scenario JSON",
+          "loss_frac comparability needs constant datagram size, an aligned full-run window, and boundary handling: bytes still queued at episode end are counted as neither delivered nor dropped here, so end_residual_occupancy_bytes is reported per run as the boundary term",
+          "delay/jitter estimator rows (emulator_estimator.csv) are per-step aggregate candidates, quality estimator_candidate_unvalidated; never comparator gate evidence; coverage.json keeps both metrics unsupported",
+          "drain phase is opt-in (--drain) until the owner adopts the D2 endpoint definition: load stops at duration_s, the episode ends when every queue holds less than one packet (termination 'drained') or at the 3x buffer/service bound ('bound_hit'), and the actual measurement window is recorded per run"
+        ]
+      },
+      "numeric_check": [
+        {
+          "key": [
+            "cross_engine_ce01_queue_saturation_udp",
+            "loss_frac",
+            "fluid_queue_full_run_window",
+            "expressible"
+          ],
+          "values": [
+            "0.25236939435968564",
+            "0.25236939435968564",
+            "0.25236939435968564",
+            "0.25236939435968564",
+            "0.25236939435968564"
+          ],
+          "bit_exact_repr_across_repetitions": true
+        },
+        {
+          "key": [
+            "cross_engine_ce01_queue_saturation_udp",
+            "throughput_mbps",
+            "fluid_queue_full_run_window",
+            "expressible"
+          ],
+          "values": [
+            "39.25060679611651",
+            "39.25060679611651",
+            "39.25060679611651",
+            "39.25060679611651",
+            "39.25060679611651"
+          ],
+          "bit_exact_repr_across_repetitions": true
+        }
+      ],
+      "candidate_check": null,
+      "informative_check": null
+    },
+    {
+      "scenario": "cross_engine_ce02_sla_boundary_voice_udp",
+      "scenario_path": "testbed/scenarios/case_drafts/ce02.json",
+      "scenario_sha256": "a69e562a3bcd297f5095cc3e19512a7b4c4011ec4b6cc18df6bfc48d7f2f2453",
+      "original_case": {
+        "id": "ce02_sla_boundary_voice_udp",
+        "purpose": "SLA boundary: one-way delay just below the 150 ms voice threshold; sensitivity of the violation decision to jitter and small queue delay",
+        "workload": "voice",
+        "transport": "udp",
+        "old_path": "leo",
+        "new_path": "five_g",
+        "rate_mbps": 0.12,
+        "capacity_floor_frac": 0.2,
+        "duration_s": 14.0,
+        "warmup_s": 6.0,
+        "packet_bytes": 1400,
+        "metrics": [
+          "delay_median_ms",
+          "jitter_mean_ms",
+          "loss_frac"
+        ]
+      },
+      "paths": {
+        "bb": {
+          "capacity_mbps": 200.0,
+          "one_way_delay_ms": 93.7,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        },
+        "five_g": {
+          "capacity_mbps": 150.0,
+          "one_way_delay_ms": 37.5,
+          "jitter_ms": 1.0,
+          "loss_pct": 0.0
+        },
+        "leo": {
+          "capacity_mbps": 100.0,
+          "one_way_delay_ms": 31.0,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        }
+      },
+      "workload": {
+        "voice_udp_012": {
+          "flow_type": "voice",
+          "transport": "udp",
+          "client_ip": "10.0.0.11",
+          "server_port": 5004,
+          "rate_mbps": 0.12,
+          "duration_s": 14.0,
+          "warmup_s": 6.0,
+          "packet_bytes": 1400
+        }
+      },
+      "events": [
+        {
+          "workload": "voice_udp_012",
+          "old_path": "leo",
+          "new_path": "five_g"
+        }
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "repetitions": 5,
+      "calibration_path": "data/switching_calibration_v2.csv",
+      "calibration_sha256": "d7ee403c19ca88c9773098bf08ec7c12fce81f38fb4f8013ddae2ca1e02a75a7",
+      "calibration_role": "existing switch-effect model input, not independent validation evidence",
+      "required_metrics": [
+        "delay_median_ms",
+        "jitter_mean_ms",
+        "loss_frac"
+      ],
+      "drain_opt_in": true,
+      "load_stop_s": 14.0,
+      "event_s": 6.0,
+      "max_episode_s": 16,
+      "decision_interval_s": 1.0,
+      "nominal_capacity_mbps": {
+        "bb": 200.0,
+        "five_g": 150.0,
+        "leo": 100.0
+      },
+      "matched_payload_capacity_mbps": {
+        "bb": 194.1747572815534,
+        "five_g": 145.63106796116506,
+        "leo": 97.0873786407767
+      },
+      "capacity_scale": 0.970873786407767,
+      "queue_buffer_payload_bytes": {
+        "bb": 5832400.0,
+        "five_g": 4375000.0,
+        "leo": 2916200.0
+      },
+      "emulator_endpoints": "step 0 to first post-load step with summed residual below one packet, or scaled 3*max_buffer/min_service bound",
+      "runner_endpoint_status": "opt-in --matched-drain: common anchored inspection-grid definition, actual host sampling times and lateness reported; no denominator equality assumed",
+      "case_interpretation": "existing switch inputs, case names do not prove boundary coverage",
+      "send_duration_interpretation": "14s send duration; warmup/event at 6s is within it, not an additional 6s",
+      "candidate_estimators": "full episode per-step time weighting, including opt-in drain; informational, no estimator tuning or acceptance",
+      "status": "engineering_debug_only",
+      "exit_code": 2,
+      "coverage": {
+        "scenario": "cross_engine_ce02_sla_boundary_voice_udp",
+        "required_metrics": {
+          "delay_median_ms": {
+            "status": "unsupported",
+            "reason": "runner metric is a per-packet run statistic; the fluid emulator exposes per-decision-step aggregate delay (0.5*trace RTT + occupancy/service drain estimate, env/sdwan_env.py:243-260). Estimator-level mapping is an owner definition decision; candidate per-step series are extracted to emulator_estimator.csv (quality estimator_candidate_unvalidated), never gate evidence."
+          },
+          "jitter_mean_ms": {
+            "status": "unsupported",
+            "reason": "per-packet run statistic vs per-step aggregate jitter (|delta RTT|*0.5 + 0.2*drain + calibrated reorder input, env/sdwan_env.py:261-270); constant-series mode carries zero trace jitter. Owner definition decision; candidate per-step series are extracted to emulator_estimator.csv (quality estimator_candidate_unvalidated), never gate evidence."
+          },
+          "loss_frac": {
+            "status": "expressible"
+          }
+        },
+        "fail_closed": true,
+        "exit_code": 2
+      },
+      "run_manifest": {
+        "label": "raw_unvalidated_scaffolding",
+        "created_utc": "2026-11-18T10:12:30.355238+00:00",
+        "git_head": "7c62af15c903db2575e04bc925de528acfc666c0",
+        "scenario_path": "/home/sxtr/Projects/Major Project-instinct-recovery/testbed/scenarios/case_drafts/ce02.json",
+        "case_interpretation": "existing switch operating points; case names do not establish boundary coverage",
+        "scenario_sha256": "a69e562a3bcd297f5095cc3e19512a7b4c4011ec4b6cc18df6bfc48d7f2f2453",
+        "calibration_path": "/home/sxtr/Projects/Major Project-instinct-recovery/data/switching_calibration_v2.csv",
+        "seed_base": 0,
+        "repetitions": 5,
+        "event_step": 6,
+        "post_warmup_window_s": 9.0,
+        "full_window_s": 15.0,
+        "drain_enabled": true,
+        "load_stop_s": 14.0,
+        "start_path": "leo",
+        "windows": [
+          {
+            "run_id": "r00",
+            "full_offered_bytes": 210000.0,
+            "full_delivered_bytes": 210000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 120000.0,
+            "post_delivered_bytes": 120000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r01",
+            "full_offered_bytes": 210000.0,
+            "full_delivered_bytes": 210000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 120000.0,
+            "post_delivered_bytes": 120000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r02",
+            "full_offered_bytes": 210000.0,
+            "full_delivered_bytes": 210000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 120000.0,
+            "post_delivered_bytes": 120000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r03",
+            "full_offered_bytes": 210000.0,
+            "full_delivered_bytes": 210000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 120000.0,
+            "post_delivered_bytes": 120000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r04",
+            "full_offered_bytes": 210000.0,
+            "full_delivered_bytes": 210000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 120000.0,
+            "post_delivered_bytes": 120000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          }
+        ],
+        "numeric_csv": "emulator_metrics.partial.csv",
+        "estimator_csv": "emulator_estimator.csv",
+        "capacity_convention": {
+          "scale_factor": 0.970873786407767,
+          "nominal_capacity_mbps": {
+            "bb": 200.0,
+            "five_g": 150.0,
+            "leo": 100.0
+          },
+          "matched_capacity_mbps": {
+            "bb": 194.1747572815534,
+            "five_g": 145.63106796116506,
+            "leo": 97.0873786407767
+          },
+          "event_capacity_scale_applied": true,
+          "applied": true,
+          "scope": "this setup only; working convention",
+          "basis": "P1 diagnostic 18 Nov 2026 (docs/cross_engine_p1_rate_diagnostic_results.md): qdisc counters 1442 B/pkt exact; service-slope and backlog-slope agreement with wire-length token accounting (exploratory, post-observation discriminators); no universal claim"
+        },
+        "limitations": [
+          "constant-series mode carries zero trace jitter; case jitter_ms has no emulator-side expression in this mode",
+          "emulator delay/jitter are per-step aggregates, not per-packet statistics; no estimator-level mapping is claimed",
+          "interruption_s is the calibrated switching-model effect; the validation plan expects a mismatch against the testbed (informative, kept out of the comparator CSV in emulator_informative.csv)",
+          "capacity events mutate the input series from the event step, mirroring the testbed tc rate change at the event point",
+          "numeric rows cover natively expressible metrics only, over the full-run window matching testbed/analyze.py (no warmup exclusion); coverage.json is the fail-closed record for everything else",
+          "delay units: testbed netem delay is one-way on a single link; constant_series rtt_ms = 2 * one_way_delay_ms so that the emulator 0.5 RTT factor reproduces the configured one-way delay",
+          "queue convention: testbed limit is netem/TBF max_queue_size in packets; matched buffer bytes = limit_packets * packet_bytes",
+          "capacity convention: matched capacities are scaled by packet_bytes/1442 (working convention for this setup, P1 exploratory evidence; see run_manifest.capacity_convention); nominal case values are in the scenario JSON",
+          "loss_frac comparability needs constant datagram size, an aligned full-run window, and boundary handling: bytes still queued at episode end are counted as neither delivered nor dropped here, so end_residual_occupancy_bytes is reported per run as the boundary term",
+          "delay/jitter estimator rows (emulator_estimator.csv) are per-step aggregate candidates, quality estimator_candidate_unvalidated; never comparator gate evidence; coverage.json keeps both metrics unsupported",
+          "drain phase is opt-in (--drain) until the owner adopts the D2 endpoint definition: load stops at duration_s, the episode ends when every queue holds less than one packet (termination 'drained') or at the 3x buffer/service bound ('bound_hit'), and the actual measurement window is recorded per run"
+        ]
+      },
+      "numeric_check": [
+        {
+          "key": [
+            "cross_engine_ce02_sla_boundary_voice_udp",
+            "loss_frac",
+            "fluid_queue_full_run_window",
+            "expressible"
+          ],
+          "values": [
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0"
+          ],
+          "bit_exact_repr_across_repetitions": true
+        }
+      ],
+      "candidate_check": [
+        {
+          "key": [
+            "cross_engine_ce02_sla_boundary_voice_udp",
+            "delay_median_ms",
+            "per_step_aggregate_median_over_steps",
+            "estimator_candidate_unvalidated"
+          ],
+          "values": [
+            "37.5",
+            "37.5",
+            "37.5",
+            "37.5",
+            "37.5"
+          ],
+          "bit_exact_repr_across_repetitions": true
+        },
+        {
+          "key": [
+            "cross_engine_ce02_sla_boundary_voice_udp",
+            "jitter_mean_ms",
+            "per_step_aggregate_mean_over_steps",
+            "estimator_candidate_unvalidated"
+          ],
+          "values": [
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0"
+          ],
+          "bit_exact_repr_across_repetitions": true
+        }
+      ],
+      "informative_check": null
+    },
+    {
+      "scenario": "cross_engine_ce03_sla_boundary_interactive_tcp",
+      "scenario_path": "testbed/scenarios/case_drafts/ce03.json",
+      "scenario_sha256": "561afedba05661887ba3922e256d35de7dcb7f8035a9bbb73c6ca09554e15220",
+      "original_case": {
+        "id": "ce03_sla_boundary_interactive_tcp",
+        "purpose": "SLA boundary with TCP: retransmission-driven loss estimate near the 5% interactive threshold",
+        "workload": "interactive",
+        "transport": "tcp",
+        "old_path": "five_g",
+        "new_path": "leo",
+        "rate_mbps": 2.0,
+        "capacity_floor_frac": 0.2,
+        "duration_s": 14.0,
+        "warmup_s": 6.0,
+        "packet_bytes": 1400,
+        "metrics": [
+          "delay_median_ms",
+          "loss_frac",
+          "reordering_frac"
+        ]
+      },
+      "paths": {
+        "bb": {
+          "capacity_mbps": 200.0,
+          "one_way_delay_ms": 93.7,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        },
+        "five_g": {
+          "capacity_mbps": 150.0,
+          "one_way_delay_ms": 37.5,
+          "jitter_ms": 1.0,
+          "loss_pct": 0.0
+        },
+        "leo": {
+          "capacity_mbps": 100.0,
+          "one_way_delay_ms": 31.0,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        }
+      },
+      "workload": {
+        "interactive_tcp_2": {
+          "flow_type": "interactive",
+          "transport": "tcp",
+          "client_ip": "10.0.0.13",
+          "server_port": 5222,
+          "rate_mbps": 2.0,
+          "duration_s": 14.0,
+          "warmup_s": 6.0,
+          "packet_bytes": 1400
+        }
+      },
+      "events": [
+        {
+          "workload": "interactive_tcp_2",
+          "old_path": "five_g",
+          "new_path": "leo"
+        }
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "repetitions": 5,
+      "calibration_path": "data/switching_calibration_v2.csv",
+      "calibration_sha256": "d7ee403c19ca88c9773098bf08ec7c12fce81f38fb4f8013ddae2ca1e02a75a7",
+      "calibration_role": "existing switch-effect model input, not independent validation evidence",
+      "required_metrics": [
+        "delay_median_ms",
+        "loss_frac",
+        "reordering_frac"
+      ],
+      "drain_opt_in": true,
+      "load_stop_s": 14.0,
+      "event_s": 6.0,
+      "max_episode_s": 16,
+      "decision_interval_s": 1.0,
+      "nominal_capacity_mbps": {
+        "bb": 200.0,
+        "five_g": 150.0,
+        "leo": 100.0
+      },
+      "matched_payload_capacity_mbps": {
+        "bb": 194.1747572815534,
+        "five_g": 145.63106796116506,
+        "leo": 97.0873786407767
+      },
+      "capacity_scale": 0.970873786407767,
+      "queue_buffer_payload_bytes": {
+        "bb": 5832400.0,
+        "five_g": 4375000.0,
+        "leo": 2916200.0
+      },
+      "emulator_endpoints": "step 0 to first post-load step with summed residual below one packet, or scaled 3*max_buffer/min_service bound",
+      "runner_endpoint_status": "opt-in --matched-drain: common anchored inspection-grid definition, actual host sampling times and lateness reported; no denominator equality assumed",
+      "case_interpretation": "existing switch inputs, case names do not prove boundary coverage",
+      "send_duration_interpretation": "14s send duration; warmup/event at 6s is within it, not an additional 6s",
+      "candidate_estimators": "full episode per-step time weighting, including opt-in drain; informational, no estimator tuning or acceptance",
+      "status": "engineering_debug_only",
+      "exit_code": 2,
+      "coverage": {
+        "scenario": "cross_engine_ce03_sla_boundary_interactive_tcp",
+        "required_metrics": {
+          "delay_median_ms": {
+            "status": "unsupported",
+            "reason": "runner metric is a per-packet run statistic; the fluid emulator exposes per-decision-step aggregate delay (0.5*trace RTT + occupancy/service drain estimate, env/sdwan_env.py:243-260). Estimator-level mapping is an owner definition decision; candidate per-step series are extracted to emulator_estimator.csv (quality estimator_candidate_unvalidated), never gate evidence."
+          },
+          "loss_frac": {
+            "status": "expressible"
+          },
+          "reordering_frac": {
+            "status": "unsupported",
+            "reason": "impossible in the fluid model class: no packets, no packet order. Reordering enters only as a calibrated jitter input (env/sdwan_env.py:270). Requires an owner/supervisor model-scope decision."
+          }
+        },
+        "fail_closed": true,
+        "exit_code": 2
+      },
+      "run_manifest": {
+        "label": "raw_unvalidated_scaffolding",
+        "created_utc": "2026-11-18T10:12:30.520435+00:00",
+        "git_head": "7c62af15c903db2575e04bc925de528acfc666c0",
+        "scenario_path": "/home/sxtr/Projects/Major Project-instinct-recovery/testbed/scenarios/case_drafts/ce03.json",
+        "case_interpretation": "existing switch operating points; case names do not establish boundary coverage",
+        "scenario_sha256": "561afedba05661887ba3922e256d35de7dcb7f8035a9bbb73c6ca09554e15220",
+        "calibration_path": "/home/sxtr/Projects/Major Project-instinct-recovery/data/switching_calibration_v2.csv",
+        "seed_base": 0,
+        "repetitions": 5,
+        "event_step": 6,
+        "post_warmup_window_s": 9.0,
+        "full_window_s": 15.0,
+        "drain_enabled": true,
+        "load_stop_s": 14.0,
+        "start_path": "five_g",
+        "windows": [
+          {
+            "run_id": "r00",
+            "full_offered_bytes": 3500000.0,
+            "full_delivered_bytes": 3500000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 2000000.0,
+            "post_delivered_bytes": 2000000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r01",
+            "full_offered_bytes": 3500000.0,
+            "full_delivered_bytes": 3500000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 2000000.0,
+            "post_delivered_bytes": 2000000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r02",
+            "full_offered_bytes": 3500000.0,
+            "full_delivered_bytes": 3500000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 2000000.0,
+            "post_delivered_bytes": 2000000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r03",
+            "full_offered_bytes": 3500000.0,
+            "full_delivered_bytes": 3500000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 2000000.0,
+            "post_delivered_bytes": 2000000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r04",
+            "full_offered_bytes": 3500000.0,
+            "full_delivered_bytes": 3500000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 2000000.0,
+            "post_delivered_bytes": 2000000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          }
+        ],
+        "numeric_csv": "emulator_metrics.partial.csv",
+        "estimator_csv": "emulator_estimator.csv",
+        "capacity_convention": {
+          "scale_factor": 0.970873786407767,
+          "nominal_capacity_mbps": {
+            "bb": 200.0,
+            "five_g": 150.0,
+            "leo": 100.0
+          },
+          "matched_capacity_mbps": {
+            "bb": 194.1747572815534,
+            "five_g": 145.63106796116506,
+            "leo": 97.0873786407767
+          },
+          "event_capacity_scale_applied": true,
+          "applied": true,
+          "scope": "this setup only; working convention",
+          "basis": "P1 diagnostic 18 Nov 2026 (docs/cross_engine_p1_rate_diagnostic_results.md): qdisc counters 1442 B/pkt exact; service-slope and backlog-slope agreement with wire-length token accounting (exploratory, post-observation discriminators); no universal claim"
+        },
+        "limitations": [
+          "constant-series mode carries zero trace jitter; case jitter_ms has no emulator-side expression in this mode",
+          "emulator delay/jitter are per-step aggregates, not per-packet statistics; no estimator-level mapping is claimed",
+          "interruption_s is the calibrated switching-model effect; the validation plan expects a mismatch against the testbed (informative, kept out of the comparator CSV in emulator_informative.csv)",
+          "capacity events mutate the input series from the event step, mirroring the testbed tc rate change at the event point",
+          "numeric rows cover natively expressible metrics only, over the full-run window matching testbed/analyze.py (no warmup exclusion); coverage.json is the fail-closed record for everything else",
+          "delay units: testbed netem delay is one-way on a single link; constant_series rtt_ms = 2 * one_way_delay_ms so that the emulator 0.5 RTT factor reproduces the configured one-way delay",
+          "queue convention: testbed limit is netem/TBF max_queue_size in packets; matched buffer bytes = limit_packets * packet_bytes",
+          "capacity convention: matched capacities are scaled by packet_bytes/1442 (working convention for this setup, P1 exploratory evidence; see run_manifest.capacity_convention); nominal case values are in the scenario JSON",
+          "loss_frac comparability needs constant datagram size, an aligned full-run window, and boundary handling: bytes still queued at episode end are counted as neither delivered nor dropped here, so end_residual_occupancy_bytes is reported per run as the boundary term",
+          "delay/jitter estimator rows (emulator_estimator.csv) are per-step aggregate candidates, quality estimator_candidate_unvalidated; never comparator gate evidence; coverage.json keeps both metrics unsupported",
+          "drain phase is opt-in (--drain) until the owner adopts the D2 endpoint definition: load stops at duration_s, the episode ends when every queue holds less than one packet (termination 'drained') or at the 3x buffer/service bound ('bound_hit'), and the actual measurement window is recorded per run"
+        ]
+      },
+      "numeric_check": [
+        {
+          "key": [
+            "cross_engine_ce03_sla_boundary_interactive_tcp",
+            "loss_frac",
+            "fluid_queue_full_run_window",
+            "expressible"
+          ],
+          "values": [
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0"
+          ],
+          "bit_exact_repr_across_repetitions": true
+        }
+      ],
+      "candidate_check": [
+        {
+          "key": [
+            "cross_engine_ce03_sla_boundary_interactive_tcp",
+            "delay_median_ms",
+            "per_step_aggregate_median_over_steps",
+            "estimator_candidate_unvalidated"
+          ],
+          "values": [
+            "31.0",
+            "31.0",
+            "31.0",
+            "31.0",
+            "31.0"
+          ],
+          "bit_exact_repr_across_repetitions": true
+        }
+      ],
+      "informative_check": null
+    },
+    {
+      "scenario": "cross_engine_ce04_switch_transient_video_udp",
+      "scenario_path": "testbed/scenarios/case_drafts/ce04.json",
+      "scenario_sha256": "cdac76fe6a33dc4ccf3f9587534b5518e9a1e0c36ae2beef46cb05d5433484e3",
+      "original_case": {
+        "id": "ce04_switch_transient_video_udp",
+        "purpose": "switch transient: interruption duration and loss burst on the highest-RTT contrast (leo -> bb)",
+        "workload": "video",
+        "transport": "udp",
+        "old_path": "leo",
+        "new_path": "bb",
+        "rate_mbps": 4.0,
+        "capacity_floor_frac": 0.2,
+        "duration_s": 14.0,
+        "warmup_s": 6.0,
+        "packet_bytes": 1400,
+        "metrics": [
+          "interruption_s",
+          "loss_frac",
+          "reordering_frac"
+        ]
+      },
+      "paths": {
+        "bb": {
+          "capacity_mbps": 200.0,
+          "one_way_delay_ms": 93.7,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        },
+        "five_g": {
+          "capacity_mbps": 150.0,
+          "one_way_delay_ms": 37.5,
+          "jitter_ms": 1.0,
+          "loss_pct": 0.0
+        },
+        "leo": {
+          "capacity_mbps": 100.0,
+          "one_way_delay_ms": 31.0,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        }
+      },
+      "workload": {
+        "video_udp_4": {
+          "flow_type": "video",
+          "transport": "udp",
+          "client_ip": "10.0.0.12",
+          "server_port": 5000,
+          "rate_mbps": 4.0,
+          "duration_s": 14.0,
+          "warmup_s": 6.0,
+          "packet_bytes": 1400
+        }
+      },
+      "events": [
+        {
+          "workload": "video_udp_4",
+          "old_path": "leo",
+          "new_path": "bb"
+        }
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "repetitions": 5,
+      "calibration_path": "data/switching_calibration_v2.csv",
+      "calibration_sha256": "d7ee403c19ca88c9773098bf08ec7c12fce81f38fb4f8013ddae2ca1e02a75a7",
+      "calibration_role": "existing switch-effect model input, not independent validation evidence",
+      "required_metrics": [
+        "interruption_s",
+        "loss_frac",
+        "reordering_frac"
+      ],
+      "drain_opt_in": true,
+      "load_stop_s": 14.0,
+      "event_s": 6.0,
+      "max_episode_s": 16,
+      "decision_interval_s": 1.0,
+      "nominal_capacity_mbps": {
+        "bb": 200.0,
+        "five_g": 150.0,
+        "leo": 100.0
+      },
+      "matched_payload_capacity_mbps": {
+        "bb": 194.1747572815534,
+        "five_g": 145.63106796116506,
+        "leo": 97.0873786407767
+      },
+      "capacity_scale": 0.970873786407767,
+      "queue_buffer_payload_bytes": {
+        "bb": 5832400.0,
+        "five_g": 4375000.0,
+        "leo": 2916200.0
+      },
+      "emulator_endpoints": "step 0 to first post-load step with summed residual below one packet, or scaled 3*max_buffer/min_service bound",
+      "runner_endpoint_status": "opt-in --matched-drain: common anchored inspection-grid definition, actual host sampling times and lateness reported; no denominator equality assumed",
+      "case_interpretation": "existing switch inputs, case names do not prove boundary coverage",
+      "send_duration_interpretation": "14s send duration; warmup/event at 6s is within it, not an additional 6s",
+      "candidate_estimators": "full episode per-step time weighting, including opt-in drain; informational, no estimator tuning or acceptance",
+      "status": "engineering_debug_only",
+      "exit_code": 2,
+      "coverage": {
+        "scenario": "cross_engine_ce04_switch_transient_video_udp",
+        "required_metrics": {
+          "interruption_s": {
+            "status": "expressible"
+          },
+          "loss_frac": {
+            "status": "expressible"
+          },
+          "reordering_frac": {
+            "status": "unsupported",
+            "reason": "impossible in the fluid model class: no packets, no packet order. Reordering enters only as a calibrated jitter input (env/sdwan_env.py:270). Requires an owner/supervisor model-scope decision."
+          }
+        },
+        "fail_closed": true,
+        "exit_code": 2
+      },
+      "run_manifest": {
+        "label": "raw_unvalidated_scaffolding",
+        "created_utc": "2026-11-18T10:12:30.683622+00:00",
+        "git_head": "7c62af15c903db2575e04bc925de528acfc666c0",
+        "scenario_path": "/home/sxtr/Projects/Major Project-instinct-recovery/testbed/scenarios/case_drafts/ce04.json",
+        "case_interpretation": "existing switch operating points; case names do not establish boundary coverage",
+        "scenario_sha256": "cdac76fe6a33dc4ccf3f9587534b5518e9a1e0c36ae2beef46cb05d5433484e3",
+        "calibration_path": "/home/sxtr/Projects/Major Project-instinct-recovery/data/switching_calibration_v2.csv",
+        "seed_base": 0,
+        "repetitions": 5,
+        "event_step": 6,
+        "post_warmup_window_s": 9.0,
+        "full_window_s": 15.0,
+        "drain_enabled": true,
+        "load_stop_s": 14.0,
+        "start_path": "leo",
+        "windows": [
+          {
+            "run_id": "r00",
+            "full_offered_bytes": 7000000.0,
+            "full_delivered_bytes": 7000000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 4000000.0,
+            "post_delivered_bytes": 4000000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r01",
+            "full_offered_bytes": 7000000.0,
+            "full_delivered_bytes": 7000000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 4000000.0,
+            "post_delivered_bytes": 4000000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r02",
+            "full_offered_bytes": 7000000.0,
+            "full_delivered_bytes": 7000000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 4000000.0,
+            "post_delivered_bytes": 4000000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r03",
+            "full_offered_bytes": 7000000.0,
+            "full_delivered_bytes": 7000000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 4000000.0,
+            "post_delivered_bytes": 4000000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          },
+          {
+            "run_id": "r04",
+            "full_offered_bytes": 7000000.0,
+            "full_delivered_bytes": 7000000.0,
+            "full_dropped_bytes": 0.0,
+            "post_offered_bytes": 4000000.0,
+            "post_delivered_bytes": 4000000.0,
+            "post_dropped_bytes": 0.0,
+            "end_residual_occupancy_bytes": 0.0,
+            "steps_run": 15,
+            "measurement_window_s": 15.0,
+            "drain_termination": "drained",
+            "drain_steps_used": 1
+          }
+        ],
+        "numeric_csv": "emulator_metrics.partial.csv",
+        "estimator_csv": null,
+        "capacity_convention": {
+          "scale_factor": 0.970873786407767,
+          "nominal_capacity_mbps": {
+            "bb": 200.0,
+            "five_g": 150.0,
+            "leo": 100.0
+          },
+          "matched_capacity_mbps": {
+            "bb": 194.1747572815534,
+            "five_g": 145.63106796116506,
+            "leo": 97.0873786407767
+          },
+          "event_capacity_scale_applied": true,
+          "applied": true,
+          "scope": "this setup only; working convention",
+          "basis": "P1 diagnostic 18 Nov 2026 (docs/cross_engine_p1_rate_diagnostic_results.md): qdisc counters 1442 B/pkt exact; service-slope and backlog-slope agreement with wire-length token accounting (exploratory, post-observation discriminators); no universal claim"
+        },
+        "limitations": [
+          "constant-series mode carries zero trace jitter; case jitter_ms has no emulator-side expression in this mode",
+          "emulator delay/jitter are per-step aggregates, not per-packet statistics; no estimator-level mapping is claimed",
+          "interruption_s is the calibrated switching-model effect; the validation plan expects a mismatch against the testbed (informative, kept out of the comparator CSV in emulator_informative.csv)",
+          "capacity events mutate the input series from the event step, mirroring the testbed tc rate change at the event point",
+          "numeric rows cover natively expressible metrics only, over the full-run window matching testbed/analyze.py (no warmup exclusion); coverage.json is the fail-closed record for everything else",
+          "delay units: testbed netem delay is one-way on a single link; constant_series rtt_ms = 2 * one_way_delay_ms so that the emulator 0.5 RTT factor reproduces the configured one-way delay",
+          "queue convention: testbed limit is netem/TBF max_queue_size in packets; matched buffer bytes = limit_packets * packet_bytes",
+          "capacity convention: matched capacities are scaled by packet_bytes/1442 (working convention for this setup, P1 exploratory evidence; see run_manifest.capacity_convention); nominal case values are in the scenario JSON",
+          "loss_frac comparability needs constant datagram size, an aligned full-run window, and boundary handling: bytes still queued at episode end are counted as neither delivered nor dropped here, so end_residual_occupancy_bytes is reported per run as the boundary term",
+          "delay/jitter estimator rows (emulator_estimator.csv) are per-step aggregate candidates, quality estimator_candidate_unvalidated; never comparator gate evidence; coverage.json keeps both metrics unsupported",
+          "drain phase is opt-in (--drain) until the owner adopts the D2 endpoint definition: load stops at duration_s, the episode ends when every queue holds less than one packet (termination 'drained') or at the 3x buffer/service bound ('bound_hit'), and the actual measurement window is recorded per run"
+        ]
+      },
+      "numeric_check": [
+        {
+          "key": [
+            "cross_engine_ce04_switch_transient_video_udp",
+            "loss_frac",
+            "fluid_queue_full_run_window",
+            "expressible"
+          ],
+          "values": [
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0"
+          ],
+          "bit_exact_repr_across_repetitions": true
+        }
+      ],
+      "candidate_check": null,
+      "informative_check": [
+        {
+          "key": [
+            "cross_engine_ce04_switch_transient_video_udp",
+            "interruption_s",
+            "switching_calibration_model",
+            "informative_expected_mismatch"
+          ],
+          "values": [
+            "0.06269378501019673",
+            "0.06269378501019673",
+            "0.06269378501019673",
+            "0.06269378501019673",
+            "0.06269378501019673"
+          ],
+          "bit_exact_repr_across_repetitions": true
+        }
+      ]
+    }
+  ]
+}

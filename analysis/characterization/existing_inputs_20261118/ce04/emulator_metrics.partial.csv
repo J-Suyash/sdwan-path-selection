@@ -1,0 +1,6 @@
+case,metric,value,estimator,quality,run_id,seed
+cross_engine_ce04_switch_transient_video_udp,loss_frac,0.0,fluid_queue_full_run_window,expressible,r00,0
+cross_engine_ce04_switch_transient_video_udp,loss_frac,0.0,fluid_queue_full_run_window,expressible,r01,1
+cross_engine_ce04_switch_transient_video_udp,loss_frac,0.0,fluid_queue_full_run_window,expressible,r02,2
+cross_engine_ce04_switch_transient_video_udp,loss_frac,0.0,fluid_queue_full_run_window,expressible,r03,3
+cross_engine_ce04_switch_transient_video_udp,loss_frac,0.0,fluid_queue_full_run_window,expressible,r04,4

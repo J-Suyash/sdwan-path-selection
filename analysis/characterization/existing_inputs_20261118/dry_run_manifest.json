@@ -1,0 +1,432 @@
+{
+  "label": "raw_unvalidated_scaffolding",
+  "purpose": "existing-input engineering characterization, never boundary validation or result acceptance",
+  "git_head": "7c62af15c903db2575e04bc925de528acfc666c0",
+  "harness_sha256": "440f05745d4ad6fed6e6cfae36845eef52087fa422ce72083e4845fe4b26360c",
+  "generator_sha256": "ade704e5b2e564bf8bbbd502440653799b9ee15021b473faf9f0de1e144b6412",
+  "cases_source_sha256": "a257cde8c8488be2d0ad102ef75b9828bd18755344a6dd04b5333383a0353198",
+  "calibration_heldout_separation": "no bands derived, no acceptance decisions; future calibration rules must freeze before held-out evaluation",
+  "privileged_execution": false,
+  "records": [
+    {
+      "scenario": "cross_engine_ce01_queue_saturation_udp",
+      "scenario_path": "testbed/scenarios/case_drafts/ce01.json",
+      "scenario_sha256": "f4944ae2e2db1c66c831b3042df04059702d33d9bf5138c3852ad41003e741e8",
+      "original_case": {
+        "id": "ce01_queue_saturation_udp",
+        "purpose": "queue saturation: offered rate exceeds sagged capacity on five_g; exercises buffer fill, overflow drops and queue-delay ceiling",
+        "workload": "bulk",
+        "transport": "udp",
+        "old_path": "bb",
+        "new_path": "five_g",
+        "rate_mbps": 60.0,
+        "capacity_floor_frac": 0.2,
+        "duration_s": 14.0,
+        "warmup_s": 6.0,
+        "packet_bytes": 1400,
+        "metrics": [
+          "queue_delay_ms",
+          "loss_frac",
+          "throughput_mbps"
+        ]
+      },
+      "paths": {
+        "bb": {
+          "capacity_mbps": 200.0,
+          "one_way_delay_ms": 93.7,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        },
+        "five_g": {
+          "capacity_mbps": 150.0,
+          "one_way_delay_ms": 37.5,
+          "jitter_ms": 1.0,
+          "loss_pct": 0.0
+        },
+        "leo": {
+          "capacity_mbps": 100.0,
+          "one_way_delay_ms": 31.0,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        }
+      },
+      "workload": {
+        "bulk_udp_60": {
+          "flow_type": "bulk",
+          "transport": "udp",
+          "client_ip": "10.0.0.14",
+          "server_port": 9999,
+          "rate_mbps": 60.0,
+          "duration_s": 14.0,
+          "warmup_s": 6.0,
+          "packet_bytes": 1400
+        }
+      },
+      "events": [
+        {
+          "workload": "bulk_udp_60",
+          "path": "five_g",
+          "capacity_mbps": 30.0
+        }
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "repetitions": 5,
+      "calibration_path": "data/switching_calibration_v2.csv",
+      "calibration_sha256": "d7ee403c19ca88c9773098bf08ec7c12fce81f38fb4f8013ddae2ca1e02a75a7",
+      "calibration_role": "existing switch-effect model input, not independent validation evidence",
+      "required_metrics": [
+        "queue_delay_ms",
+        "loss_frac",
+        "throughput_mbps"
+      ],
+      "drain_opt_in": true,
+      "load_stop_s": 14.0,
+      "event_s": 6.0,
+      "max_episode_s": 19,
+      "decision_interval_s": 1.0,
+      "nominal_capacity_mbps": {
+        "bb": 200.0,
+        "five_g": 150.0,
+        "leo": 100.0
+      },
+      "matched_payload_capacity_mbps": {
+        "bb": 194.1747572815534,
+        "five_g": 145.63106796116506,
+        "leo": 97.0873786407767
+      },
+      "capacity_scale": 0.970873786407767,
+      "queue_buffer_payload_bytes": {
+        "bb": 5832400.0,
+        "five_g": 4375000.0,
+        "leo": 2916200.0
+      },
+      "emulator_endpoints": "step 0 to first post-load step with summed residual below one packet, or scaled 3*max_buffer/min_service bound",
+      "runner_endpoint_status": "opt-in --matched-drain: common anchored inspection-grid definition, actual host sampling times and lateness reported; no denominator equality assumed",
+      "case_interpretation": "sustained sag from event to end is a working interpretation, not recovered original intent",
+      "send_duration_interpretation": "14s send duration; warmup/event at 6s is within it, not an additional 6s",
+      "candidate_estimators": "full episode per-step time weighting, including opt-in drain; informational, no estimator tuning or acceptance",
+      "status": "dry_run_only"
+    },
+    {
+      "scenario": "cross_engine_ce02_sla_boundary_voice_udp",
+      "scenario_path": "testbed/scenarios/case_drafts/ce02.json",
+      "scenario_sha256": "a69e562a3bcd297f5095cc3e19512a7b4c4011ec4b6cc18df6bfc48d7f2f2453",
+      "original_case": {
+        "id": "ce02_sla_boundary_voice_udp",
+        "purpose": "SLA boundary: one-way delay just below the 150 ms voice threshold; sensitivity of the violation decision to jitter and small queue delay",
+        "workload": "voice",
+        "transport": "udp",
+        "old_path": "leo",
+        "new_path": "five_g",
+        "rate_mbps": 0.12,
+        "capacity_floor_frac": 0.2,
+        "duration_s": 14.0,
+        "warmup_s": 6.0,
+        "packet_bytes": 1400,
+        "metrics": [
+          "delay_median_ms",
+          "jitter_mean_ms",
+          "loss_frac"
+        ]
+      },
+      "paths": {
+        "bb": {
+          "capacity_mbps": 200.0,
+          "one_way_delay_ms": 93.7,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        },
+        "five_g": {
+          "capacity_mbps": 150.0,
+          "one_way_delay_ms": 37.5,
+          "jitter_ms": 1.0,
+          "loss_pct": 0.0
+        },
+        "leo": {
+          "capacity_mbps": 100.0,
+          "one_way_delay_ms": 31.0,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        }
+      },
+      "workload": {
+        "voice_udp_012": {
+          "flow_type": "voice",
+          "transport": "udp",
+          "client_ip": "10.0.0.11",
+          "server_port": 5004,
+          "rate_mbps": 0.12,
+          "duration_s": 14.0,
+          "warmup_s": 6.0,
+          "packet_bytes": 1400
+        }
+      },
+      "events": [
+        {
+          "workload": "voice_udp_012",
+          "old_path": "leo",
+          "new_path": "five_g"
+        }
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "repetitions": 5,
+      "calibration_path": "data/switching_calibration_v2.csv",
+      "calibration_sha256": "d7ee403c19ca88c9773098bf08ec7c12fce81f38fb4f8013ddae2ca1e02a75a7",
+      "calibration_role": "existing switch-effect model input, not independent validation evidence",
+      "required_metrics": [
+        "delay_median_ms",
+        "jitter_mean_ms",
+        "loss_frac"
+      ],
+      "drain_opt_in": true,
+      "load_stop_s": 14.0,
+      "event_s": 6.0,
+      "max_episode_s": 16,
+      "decision_interval_s": 1.0,
+      "nominal_capacity_mbps": {
+        "bb": 200.0,
+        "five_g": 150.0,
+        "leo": 100.0
+      },
+      "matched_payload_capacity_mbps": {
+        "bb": 194.1747572815534,
+        "five_g": 145.63106796116506,
+        "leo": 97.0873786407767
+      },
+      "capacity_scale": 0.970873786407767,
+      "queue_buffer_payload_bytes": {
+        "bb": 5832400.0,
+        "five_g": 4375000.0,
+        "leo": 2916200.0
+      },
+      "emulator_endpoints": "step 0 to first post-load step with summed residual below one packet, or scaled 3*max_buffer/min_service bound",
+      "runner_endpoint_status": "opt-in --matched-drain: common anchored inspection-grid definition, actual host sampling times and lateness reported; no denominator equality assumed",
+      "case_interpretation": "existing switch inputs, case names do not prove boundary coverage",
+      "send_duration_interpretation": "14s send duration; warmup/event at 6s is within it, not an additional 6s",
+      "candidate_estimators": "full episode per-step time weighting, including opt-in drain; informational, no estimator tuning or acceptance",
+      "status": "dry_run_only"
+    },
+    {
+      "scenario": "cross_engine_ce03_sla_boundary_interactive_tcp",
+      "scenario_path": "testbed/scenarios/case_drafts/ce03.json",
+      "scenario_sha256": "561afedba05661887ba3922e256d35de7dcb7f8035a9bbb73c6ca09554e15220",
+      "original_case": {
+        "id": "ce03_sla_boundary_interactive_tcp",
+        "purpose": "SLA boundary with TCP: retransmission-driven loss estimate near the 5% interactive threshold",
+        "workload": "interactive",
+        "transport": "tcp",
+        "old_path": "five_g",
+        "new_path": "leo",
+        "rate_mbps": 2.0,
+        "capacity_floor_frac": 0.2,
+        "duration_s": 14.0,
+        "warmup_s": 6.0,
+        "packet_bytes": 1400,
+        "metrics": [
+          "delay_median_ms",
+          "loss_frac",
+          "reordering_frac"
+        ]
+      },
+      "paths": {
+        "bb": {
+          "capacity_mbps": 200.0,
+          "one_way_delay_ms": 93.7,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        },
+        "five_g": {
+          "capacity_mbps": 150.0,
+          "one_way_delay_ms": 37.5,
+          "jitter_ms": 1.0,
+          "loss_pct": 0.0
+        },
+        "leo": {
+          "capacity_mbps": 100.0,
+          "one_way_delay_ms": 31.0,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        }
+      },
+      "workload": {
+        "interactive_tcp_2": {
+          "flow_type": "interactive",
+          "transport": "tcp",
+          "client_ip": "10.0.0.13",
+          "server_port": 5222,
+          "rate_mbps": 2.0,
+          "duration_s": 14.0,
+          "warmup_s": 6.0,
+          "packet_bytes": 1400
+        }
+      },
+      "events": [
+        {
+          "workload": "interactive_tcp_2",
+          "old_path": "five_g",
+          "new_path": "leo"
+        }
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "repetitions": 5,
+      "calibration_path": "data/switching_calibration_v2.csv",
+      "calibration_sha256": "d7ee403c19ca88c9773098bf08ec7c12fce81f38fb4f8013ddae2ca1e02a75a7",
+      "calibration_role": "existing switch-effect model input, not independent validation evidence",
+      "required_metrics": [
+        "delay_median_ms",
+        "loss_frac",
+        "reordering_frac"
+      ],
+      "drain_opt_in": true,
+      "load_stop_s": 14.0,
+      "event_s": 6.0,
+      "max_episode_s": 16,
+      "decision_interval_s": 1.0,
+      "nominal_capacity_mbps": {
+        "bb": 200.0,
+        "five_g": 150.0,
+        "leo": 100.0
+      },
+      "matched_payload_capacity_mbps": {
+        "bb": 194.1747572815534,
+        "five_g": 145.63106796116506,
+        "leo": 97.0873786407767
+      },
+      "capacity_scale": 0.970873786407767,
+      "queue_buffer_payload_bytes": {
+        "bb": 5832400.0,
+        "five_g": 4375000.0,
+        "leo": 2916200.0
+      },
+      "emulator_endpoints": "step 0 to first post-load step with summed residual below one packet, or scaled 3*max_buffer/min_service bound",
+      "runner_endpoint_status": "opt-in --matched-drain: common anchored inspection-grid definition, actual host sampling times and lateness reported; no denominator equality assumed",
+      "case_interpretation": "existing switch inputs, case names do not prove boundary coverage",
+      "send_duration_interpretation": "14s send duration; warmup/event at 6s is within it, not an additional 6s",
+      "candidate_estimators": "full episode per-step time weighting, including opt-in drain; informational, no estimator tuning or acceptance",
+      "status": "dry_run_only"
+    },
+    {
+      "scenario": "cross_engine_ce04_switch_transient_video_udp",
+      "scenario_path": "testbed/scenarios/case_drafts/ce04.json",
+      "scenario_sha256": "cdac76fe6a33dc4ccf3f9587534b5518e9a1e0c36ae2beef46cb05d5433484e3",
+      "original_case": {
+        "id": "ce04_switch_transient_video_udp",
+        "purpose": "switch transient: interruption duration and loss burst on the highest-RTT contrast (leo -> bb)",
+        "workload": "video",
+        "transport": "udp",
+        "old_path": "leo",
+        "new_path": "bb",
+        "rate_mbps": 4.0,
+        "capacity_floor_frac": 0.2,
+        "duration_s": 14.0,
+        "warmup_s": 6.0,
+        "packet_bytes": 1400,
+        "metrics": [
+          "interruption_s",
+          "loss_frac",
+          "reordering_frac"
+        ]
+      },
+      "paths": {
+        "bb": {
+          "capacity_mbps": 200.0,
+          "one_way_delay_ms": 93.7,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        },
+        "five_g": {
+          "capacity_mbps": 150.0,
+          "one_way_delay_ms": 37.5,
+          "jitter_ms": 1.0,
+          "loss_pct": 0.0
+        },
+        "leo": {
+          "capacity_mbps": 100.0,
+          "one_way_delay_ms": 31.0,
+          "jitter_ms": 0.3,
+          "loss_pct": 0.0
+        }
+      },
+      "workload": {
+        "video_udp_4": {
+          "flow_type": "video",
+          "transport": "udp",
+          "client_ip": "10.0.0.12",
+          "server_port": 5000,
+          "rate_mbps": 4.0,
+          "duration_s": 14.0,
+          "warmup_s": 6.0,
+          "packet_bytes": 1400
+        }
+      },
+      "events": [
+        {
+          "workload": "video_udp_4",
+          "old_path": "leo",
+          "new_path": "bb"
+        }
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "repetitions": 5,
+      "calibration_path": "data/switching_calibration_v2.csv",
+      "calibration_sha256": "d7ee403c19ca88c9773098bf08ec7c12fce81f38fb4f8013ddae2ca1e02a75a7",
+      "calibration_role": "existing switch-effect model input, not independent validation evidence",
+      "required_metrics": [
+        "interruption_s",
+        "loss_frac",
+        "reordering_frac"
+      ],
+      "drain_opt_in": true,
+      "load_stop_s": 14.0,
+      "event_s": 6.0,
+      "max_episode_s": 16,
+      "decision_interval_s": 1.0,
+      "nominal_capacity_mbps": {
+        "bb": 200.0,
+        "five_g": 150.0,
+        "leo": 100.0
+      },
+      "matched_payload_capacity_mbps": {
+        "bb": 194.1747572815534,
+        "five_g": 145.63106796116506,
+        "leo": 97.0873786407767
+      },
+      "capacity_scale": 0.970873786407767,
+      "queue_buffer_payload_bytes": {
+        "bb": 5832400.0,
+        "five_g": 4375000.0,
+        "leo": 2916200.0
+      },
+      "emulator_endpoints": "step 0 to first post-load step with summed residual below one packet, or scaled 3*max_buffer/min_service bound",
+      "runner_endpoint_status": "opt-in --matched-drain: common anchored inspection-grid definition, actual host sampling times and lateness reported; no denominator equality assumed",
+      "case_interpretation": "existing switch inputs, case names do not prove boundary coverage",
+      "send_duration_interpretation": "14s send duration; warmup/event at 6s is within it, not an additional 6s",
+      "candidate_estimators": "full episode per-step time weighting, including opt-in drain; informational, no estimator tuning or acceptance",
+      "status": "dry_run_only"
+    }
+  ]
+}

@@ -123,3 +123,22 @@ def test_nonempty_prior_run_fails_before_any_start(tmp_path, monkeypatch):
     monkeypatch.setattr(m, "start_background", lambda *a, **k: pytest.fail("no child may start"))
     with pytest.raises(RuntimeError, match="nonempty"):
         m.run_one(tb, s, plan, event=s.events[0], capture=False, matched_drain=True)
+
+
+def test_run_actual_stops_its_network_on_child_error(tmp_path, monkeypatch):
+    import sys
+    import testbed.run_switch_calibration as m
+    s = load_scenario("testbed/scenarios/case_drafts/ce01.json")
+    plan = m.build_run_plan(s, tmp_path / "run", repetitions=1)
+    stopped = []
+    net = SimpleNamespace(stop=lambda: stopped.append(True))
+    net.start = lambda: net
+    monkeypatch.setitem(sys.modules, "testbed.sdwan_topology", SimpleNamespace(build_network=lambda s: net))
+    monkeypatch.setattr(m.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(m, "environment_checks", lambda: [])
+    def fail(*a, **kw):
+        raise RuntimeError("synthetic child abort")
+    monkeypatch.setattr(m, "run_one", fail)
+    with pytest.raises(RuntimeError, match="synthetic"):
+        m.run_actual(s, plan, capture=True, matched_drain=True)
+    assert stopped == [True]

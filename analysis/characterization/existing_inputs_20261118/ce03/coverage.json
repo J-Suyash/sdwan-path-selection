@@ -1,0 +1,18 @@
+{
+  "scenario": "cross_engine_ce03_sla_boundary_interactive_tcp",
+  "required_metrics": {
+    "delay_median_ms": {
+      "status": "unsupported",
+      "reason": "runner metric is a per-packet run statistic; the fluid emulator exposes per-decision-step aggregate delay (0.5*trace RTT + occupancy/service drain estimate, env/sdwan_env.py:243-260). Estimator-level mapping is an owner definition decision; candidate per-step series are extracted to emulator_estimator.csv (quality estimator_candidate_unvalidated), never gate evidence."
+    },
+    "loss_frac": {
+      "status": "expressible"
+    },
+    "reordering_frac": {
+      "status": "unsupported",
+      "reason": "impossible in the fluid model class: no packets, no packet order. Reordering enters only as a calibrated jitter input (env/sdwan_env.py:270). Requires an owner/supervisor model-scope decision."
+    }
+  },
+  "fail_closed": true,
+  "exit_code": 2
+}
