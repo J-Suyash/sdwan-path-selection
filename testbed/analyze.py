@@ -100,14 +100,15 @@ _TC_BACKLOG_UNITS = {"b": 1, "K": 1024, "M": 1024**2, "G": 1024**3}
 def parse_qdisc_backlog_bytes(output: str) -> int:
     """Largest backlog across qdisc lines, in bytes.
 
-    tc (iproute2 7.3.0) prints a unit suffix only when the byte count is
-    an exact multiple of the unit: "241Kb" is exactly 241*1024 bytes,
-    while non-multiples such as 246630 print in plain bytes (verified
-    against the full retained qdisc corpus: 960 backlog tokens, the only
-    suffixed ones are exact multiples, and larger values print plain).
-    Suffixed forms therefore carry no rounding loss.  Unknown units or
-    malformed backlog tokens raise instead of silently reading zero;
-    output without any backlog token still yields 0.
+    Unit convention (iproute2 sprint_size, lib/json_print_math.c; binary
+    strings and the full retained corpus are consistent with it): K/M/G
+    are 1024-based, and a suffix prints only when the byte count is within
+    +/-15 bytes of a unit multiple ("241Kb" means 241*1024 +/- 15), with
+    plain bytes otherwise - which is why larger non-multiples such as
+    246630 print plain.  Suffixed forms therefore carry a +/-15-byte
+    rounding window, not an exact value.  Unknown units or malformed
+    backlog tokens raise instead of silently reading zero; output without
+    any backlog token still yields 0.
     """
     values = []
     for digits, unit in _BACKLOG_TOKEN.findall(output):

@@ -1,6 +1,31 @@
 # Reproducibility recovery handoff
 
-## Current state (2026-11-18 ~04:50 IST; supersedes checkpoint figures below)
+## Current state (2026-11-18 ~05:55 IST; supersedes checkpoint figures below)
+
+Latest (05:55 IST):
+
+- Latest code commit `28a58b5` (testbed: suffix-aware qdisc backlog parse,
+  zero-inclusive first bucket); full suite 157 passed in 137.65s at this
+  tip's code (docstring/handoff edits after the run are comments/docs
+  only). Worktree clean except the intentional `data/raw`,
+  `data/processed` symlinks.
+- New evidence (local, candidate-only): occupancy normalization impact
+  (`/home/sxtr/queue_delay_baseline_evidence_v3.json`), e11-r00 repair
+  band impact three-way (`/home/sxtr/e11_band_impact_v2.json`):
+  committed bands are bit-identical under original pipeline,
+  zero-edge-only, and suffix+edge repairs.
+- New finding: v1 cell e11 audit trail was distorted by the tc
+  Kb-suffix parse defect (e11-r00 recorded occupancy 0.0, true backlog
+  241Kb = 246784 +/- 15 B); band numbers provably insensitive.
+- v1 scenario hash conflict explained: current scenario file has
+  per-path limits added; `scenario_as_run.json` (shared 1000) plus all
+  120 qdisc `limit 1000` lines corroborate the as-run config; edit
+  timing unknown.
+- Cumulative patch through `28a58b5`: sha256
+  420c8a409ed18b5ea57e2415e28fac33fe238b21d2672aa80ef1220479660797
+  (superseded by any later commit).
+
+## Current state (2026-11-18 ~04:50, older IST; supersedes checkpoint figures below)
 
 - Branch `instinct/reproducibility-diagnostics` tip
   (worktree `/home/sxtr/Projects/Major Project-instinct-recovery`),
