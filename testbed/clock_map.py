@@ -77,6 +77,10 @@ def mapped_capture_counts(frame_epochs, samples, t0, t1, *, boundary_safety_s=0.
     t1_lower, t1_upper = map_boundary(samples, t1)
     # The reported envelope includes declared safety and observed sampling
     # brackets. It is still not a guarantee about unsampled adjustment.
+    # Basis: 1ms declared ordinary-step envelope for this same-host laptop,
+    # matching the runner's 1-second decision/sampling grid. It is a
+    # protocol constant, not estimated from outcomes; it does not cover
+    # unseen steps and is not a statistical interval.
     lower, upper = t0_upper + boundary_safety_s, t1_lower - boundary_safety_s
     outer_lower, outer_upper = t0_lower - boundary_safety_s, t1_upper + boundary_safety_s
     # An envelope wider than the measured window makes strict inclusion
@@ -93,7 +97,8 @@ def mapped_capture_counts(frame_epochs, samples, t0, t1, *, boundary_safety_s=0.
         "t0_sampled_epoch_interval_s": [t0_lower, t0_upper],
         "t1_sampled_epoch_interval_s": [t1_lower, t1_upper],
         "declared_boundary_safety_s": boundary_safety_s,
-        "label": "sampled-clock envelope, assumptions explicit; no acceptance interval",
+        "label": "conditional sampled-clock envelope; assumptions explicit; not guaranteed bounds on unseen clock behavior; no acceptance interval",
+        "boundary_safety_basis": "1ms protocol constant aligned to runner 1s grid; not outcome-derived or a statistical interval",
     }
 
 
