@@ -20,6 +20,8 @@ configuration/trace provenance, or owner review.
 
 from __future__ import annotations
 
+import json
+
 import argparse
 import sys
 from pathlib import Path
@@ -117,10 +119,46 @@ def _check_identifiers(table: pd.DataFrame, label: str, path: Path) -> None:
                 f"{label} table {path}: empty {col!r} identifier at CSV row {row}")
 
 
+def _check_coverage_sidecar(path: Path, label: str) -> None:
+    """Refuse matched-run tables whose harness coverage is incomplete.
+
+    The matched-run harness (scripts/run_emulator_matched_case.py) writes a
+    coverage.json beside its numeric CSV. The comparator reads only
+    (case, metric, value) and would otherwise accept a partial result as
+    complete case evidence, so when the sidecar reports unsupported
+    required metrics the load fails closed.
+    """
+
+    sidecar = Path(path).with_name("coverage.json")
+    if not sidecar.exists():
+        return
+    try:
+        coverage = json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise InputError(
+            f"{label} table {path}: unreadable coverage sidecar {sidecar}: {exc}"
+        ) from None
+    required = coverage.get("required_metrics")
+    if not isinstance(required, dict):
+        return
+    unsupported = sorted(
+        metric
+        for metric, entry in required.items()
+        if isinstance(entry, dict) and entry.get("status") != "expressible"
+    )
+    if unsupported:
+        raise InputError(
+            f"{label} table {path}: matched-run coverage incomplete; "
+            f"unsupported required metrics {unsupported} (see {sidecar}); "
+            "partial results are not complete case evidence"
+        )
+
+
 def _load_table(path: Path, label: str) -> pd.DataFrame:
     """Read and validate one long-format result table."""
 
     table = _load_csv(path, label)
+    _check_coverage_sidecar(path, label)
     missing = [col for col in REQUIRED_COLUMNS if col not in table.columns]
     if missing:
         raise InputError(

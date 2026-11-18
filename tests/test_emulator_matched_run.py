@@ -143,14 +143,16 @@ def test_run_case_below_capacity_zero_loss(tmp_path):
             assert float(row["value"]) == pytest.approx(10.0)
 
 
-def test_run_case_saturation_drops_post_warmup(tmp_path):
+def test_run_case_saturation_drops_full_run(tmp_path):
     scenario = _write_scenario(tmp_path, rate_mbps=200.0, capacity_mbps=100.0)
     out = tmp_path / "out"
     code = run_case(scenario, out_dir=out, required_metrics=["loss_frac"])
     assert code == 0
     rows = _read_csv(out / "emulator_metrics.csv")
+    # Full-run window: step 0 drops 11.1e6 B, steps 1-3 drop 12.5e6 B
+    # each (buffer drains and re-admits); 48.6e6 / 100e6 = 0.486.
     for row in rows:
-        assert 0.45 < float(row["value"]) < 0.55
+        assert float(row["value"]) == pytest.approx(0.486)
 
 
 def test_run_case_fail_closed_on_unsupported_metric(tmp_path):
@@ -160,15 +162,46 @@ def test_run_case_fail_closed_on_unsupported_metric(tmp_path):
         scenario, out_dir=out, required_metrics=["loss_frac", "queue_delay_ms"]
     )
     assert code == 2
-    rows = _read_csv(out / "emulator_metrics.csv")
+    # Fail closed end to end: no complete-named CSV may exist.
+    assert not (out / "emulator_metrics.csv").exists()
+    rows = _read_csv(out / "emulator_metrics.partial.csv")
     assert {row["metric"] for row in rows} == {"loss_frac"}
     coverage = json.loads((out / "coverage.json").read_text(encoding="utf-8"))
     entry = coverage["required_metrics"]["queue_delay_ms"]
     assert entry["status"] == "unsupported"
     assert "UNVALIDATED" in entry["reason"]
     assert coverage["fail_closed"] is True
+    manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["numeric_csv"] == "emulator_metrics.partial.csv"
     for metric, reason in UNSUPPORTED_REASONS.items():
         assert reason  # reasons are never blank
+
+
+def test_comparator_refuses_incomplete_coverage(tmp_path):
+    from scripts.cross_engine_compare import InputError, _load_table
+
+    table = tmp_path / "emulator_metrics.csv"
+    table.write_text("case,metric,value\nc1,loss_frac,0.01\n", encoding="utf-8")
+    (tmp_path / "coverage.json").write_text(
+        json.dumps(
+            {
+                "required_metrics": {
+                    "loss_frac": {"status": "expressible"},
+                    "queue_delay_ms": {"status": "unsupported", "reason": "x"},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(InputError, match="coverage incomplete"):
+        _load_table(table, "emulator")
+    # Complete coverage loads fine.
+    (tmp_path / "coverage.json").write_text(
+        json.dumps({"required_metrics": {"loss_frac": {"status": "expressible"}}}),
+        encoding="utf-8",
+    )
+    loaded = _load_table(table, "emulator")
+    assert len(loaded) == 1
 
 
 def test_run_case_unknown_metric_errors(tmp_path):
@@ -210,11 +243,15 @@ def test_switch_event_records_informative_interruption(tmp_path):
     )
     assert code == 0
     rows = _read_csv(out / "emulator_metrics.csv")
-    interruption = [r for r in rows if r["metric"] == "interruption_s"]
+    # interruption_s is informative only: never in the comparator CSV.
+    assert {row["metric"] for row in rows} == {"loss_frac"}
+    informative = _read_csv(out / "emulator_informative.csv")
+    interruption = [r for r in informative if r["metric"] == "interruption_s"]
     assert len(interruption) == 2
     for row in interruption:
         assert float(row["value"]) == pytest.approx(0.012)
         assert row["quality"] == "informative_expected_mismatch"
+        assert row["calibrated"] == "True"
 
 
 def test_capacity_event_sag_causes_post_warmup_loss(tmp_path):
@@ -228,8 +265,11 @@ def test_capacity_event_sag_causes_post_warmup_loss(tmp_path):
     code = run_case(scenario, out_dir=out, required_metrics=["loss_frac"])
     assert code == 0
     rows = _read_csv(out / "emulator_metrics.csv")
+    # Full-run fluid accounting: step 0 clean; step 1 drops 4.85e6 B;
+    # steps 2-3 drop 6.25e6 B each (the 1.4e6 B buffer drains and
+    # re-admits every step); 17.35e6 / 40e6 = 0.43375.
     for row in rows:
-        assert float(row["value"]) > 0.5  # 80 offered vs 30 sagged capacity
+        assert float(row["value"]) == pytest.approx(0.43375)
     manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
     assert manifest["label"] == "raw_unvalidated_scaffolding"
     assert manifest["start_path"] == "bb"

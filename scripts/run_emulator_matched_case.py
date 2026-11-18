@@ -9,23 +9,43 @@ docs/testbed_match.md and testbed/scenarios/case_drafts/, and writes
 per-run numeric rows ONLY for metrics the fluid model expresses natively:
 
 * ``loss_frac`` - run-aggregate dropped/offered bytes from the FluidQueue
-  accounting (env/queue.py), measured over the post-warmup window.
-* ``throughput_mbps`` - delivered bytes over the post-warmup window.
-* ``interruption_s`` - the calibrated switching-model effect observed at
-  the scripted switch (env/switching.py). The validation plan expects a
-  mismatch against the testbed; the row carries quality
-  ``informative_expected_mismatch``.
+  accounting (env/queue.py), measured over the FULL RUN window. This
+  matches the runner convention: testbed/analyze.py summarize_traffic
+  computes over the whole sender-log span with no warmup exclusion.
+* ``throughput_mbps`` - delivered bytes over the full-run window (same
+  convention).
+
+``interruption_s`` is the calibrated switching-model effect observed at
+the scripted switch (env/switching.py). The validation plan expects a
+mismatch against the testbed, so it is NEVER written to the numeric
+comparator CSV (the comparator reads only case/metric/value and could
+otherwise accept it as gate evidence); it goes to
+``emulator_informative.csv`` with quality ``informative_expected_mismatch``.
 
 Metrics the aggregate model cannot express natively are NEVER emitted as
 numbers. They are recorded in coverage.json with a source-grounded
-reason, and the harness exits 2 (fail closed) so a case with incomplete
-metric coverage cannot silently satisfy the cross-engine gate:
+reason, and the harness exits 2 (fail closed): the numeric rows are
+written to ``emulator_metrics.partial.csv`` - never the complete-name
+``emulator_metrics.csv`` - and scripts/cross_engine_compare.py refuses
+any input table whose sibling coverage.json reports unsupported required
+metrics. A partial result cannot be passed onward as complete:
 
 * ``delay_median_ms`` / ``jitter_mean_ms``: the runner metrics are
   per-packet run statistics; the emulator exposes per-decision-step
   aggregates (0.5 * trace RTT + occupancy/service drain estimate,
   env/sdwan_env.py:243-268). An estimator-level mapping is an owner
   definition decision.
+
+Input-unit reconciliation (verified against testbed/sdwan_topology.py and
+testbed/analyze.py): the testbed applies ``one_way_delay_ms`` as a netem
+delay on one directional link, so the configured value is one-way; the
+emulator's delay is 0.5 * trace RTT, hence constant_series carries
+rtt_ms = 2 * one_way_delay_ms. The queue limit is netem/TBF
+``max_queue_size`` in packets; the matched buffer is
+limit_packets * packet_bytes (env/config.py convention). The runner
+measures over the full sender-log span with no warmup exclusion, so
+numeric rows use the full-run window; the post-warmup window is kept in
+the manifest for diagnostics only.
 * ``queue_delay_ms``: no per-packet queue delay exists on either side.
   The emulator's aggregate drain estimate (env/sdwan_env.py:243-249) and
   the flagged Mininet residence-minus-base candidate
@@ -94,11 +114,18 @@ LIMITATIONS = [
     "emulator delay/jitter are per-step aggregates, not per-packet "
     "statistics; no estimator-level mapping is claimed",
     "interruption_s is the calibrated switching-model effect; the "
-    "validation plan expects a mismatch against the testbed (informative)",
+    "validation plan expects a mismatch against the testbed (informative, "
+    "kept out of the comparator CSV in emulator_informative.csv)",
     "capacity events mutate the input series from the event step, "
     "mirroring the testbed tc rate change at the event point",
-    "numeric rows cover natively expressible metrics only; coverage.json "
-    "is the fail-closed record for everything else",
+    "numeric rows cover natively expressible metrics only, over the "
+    "full-run window matching testbed/analyze.py (no warmup exclusion); "
+    "coverage.json is the fail-closed record for everything else",
+    "delay units: testbed netem delay is one-way on a single link; "
+    "constant_series rtt_ms = 2 * one_way_delay_ms so that the emulator "
+    "0.5 RTT factor reproduces the configured one-way delay",
+    "queue convention: testbed limit is netem/TBF max_queue_size in "
+    "packets; matched buffer bytes = limit_packets * packet_bytes",
 ]
 
 
@@ -242,6 +269,7 @@ def run_case(
         start_path = sorted(scenario.paths)[0]
 
     rows: list[dict[str, str]] = []
+    informative_rows: list[dict[str, str]] = []
     windows: list[dict[str, float]] = []
     for rep in range(scenario.repetitions):
         run_seed = seed + rep
@@ -291,14 +319,17 @@ def run_case(
                 "post_dropped_bytes": totals["post"][2],
             }
         )
-        o, d, dr = totals["post"]
+        # Numeric comparator rows use the FULL-RUN window: the runner
+        # (testbed/analyze.py summarize_traffic) computes over the whole
+        # sender-log span with no warmup exclusion.
+        o, d, dr = totals["full"]
         if "loss_frac" in required_metrics:
             rows.append(
                 {
                     "case": scenario.name,
                     "metric": "loss_frac",
                     "value": repr(dr / o if o > 0 else 0.0),
-                    "estimator": "fluid_queue_post_warmup_window",
+                    "estimator": "fluid_queue_full_run_window",
                     "quality": "expressible",
                     "run_id": run_id,
                     "seed": str(run_seed),
@@ -309,8 +340,8 @@ def run_case(
                 {
                     "case": scenario.name,
                     "metric": "throughput_mbps",
-                    "value": repr(d * 8.0 / 1e6 / post_s if post_s > 0 else 0.0),
-                    "estimator": "fluid_queue_post_warmup_window",
+                    "value": repr(d * 8.0 / 1e6 / full_s if full_s > 0 else 0.0),
+                    "estimator": "fluid_queue_full_run_window",
                     "quality": "expressible",
                     "run_id": run_id,
                     "seed": str(run_seed),
@@ -324,13 +355,17 @@ def run_case(
                     file=sys.stderr,
                 )
                 return 1
-            rows.append(
+            # Informative only, never comparator evidence: the comparator
+            # reads just (case, metric, value) and would treat a numeric
+            # row as gate data.
+            informative_rows.append(
                 {
                     "case": scenario.name,
                     "metric": "interruption_s",
                     "value": repr(interruption_observed),
                     "estimator": "switching_calibration_model",
                     "quality": "informative_expected_mismatch",
+                    "calibrated": str(interruption_calibrated),
                     "run_id": run_id,
                     "seed": str(run_seed),
                 }
@@ -343,7 +378,12 @@ def run_case(
     if out_dir is not None:
         out = Path(out_dir)
         out.mkdir(parents=True, exist_ok=True)
-        with (out / "emulator_metrics.csv").open("w", newline="") as fh:
+        # Fail closed: incomplete coverage never gets the complete name.
+        metrics_name = (
+            "emulator_metrics.csv" if exit_code == 0
+            else "emulator_metrics.partial.csv"
+        )
+        with (out / metrics_name).open("w", newline="") as fh:
             writer = csv.DictWriter(
                 fh,
                 fieldnames=[
@@ -358,6 +398,23 @@ def run_case(
             )
             writer.writeheader()
             writer.writerows(rows)
+        if informative_rows:
+            with (out / "emulator_informative.csv").open("w", newline="") as fh:
+                writer = csv.DictWriter(
+                    fh,
+                    fieldnames=[
+                        "case",
+                        "metric",
+                        "value",
+                        "estimator",
+                        "quality",
+                        "calibrated",
+                        "run_id",
+                        "seed",
+                    ],
+                )
+                writer.writeheader()
+                writer.writerows(informative_rows)
         (out / "coverage.json").write_text(
             json.dumps(
                 {
@@ -391,6 +448,7 @@ def run_case(
                     "full_window_s": full_s,
                     "start_path": start_path,
                     "windows": windows,
+                    "numeric_csv": metrics_name,
                     "limitations": LIMITATIONS,
                 },
                 indent=2,
