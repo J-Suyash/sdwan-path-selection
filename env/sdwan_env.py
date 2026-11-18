@@ -100,7 +100,7 @@ class SDWanEnv(gymnasium.Env):
         initial = self.workload.advance(0.0, 0.0)
         self.load = dict(initial.offered_mbps)
         if self.cfg.fixed_load_mbps is not None:
-            self.load = dict(self.cfg.fixed_load_mbps)
+            self.load = self._fixed_load()
         self.assignment = {c: self.cfg.underlays[0] for c in self.cfg.classes}
         self.seconds_since_switch = {c: 0.0 for c in self.cfg.classes}
         self.switch_effects = {c: SwitchEffect() for c in self.cfg.classes}
@@ -200,13 +200,23 @@ class SDWanEnv(gymnasium.Env):
             queue_occupancy_frac=occupancy / max(capacity, 1.0),
         )
 
+    def _fixed_load(self) -> dict:
+        # Zero-load drain phase: after load_stop_s the fixed offered load
+        # drops to zero so queues can drain before the episode ends.
+        if (
+            self.cfg.load_stop_s is not None
+            and self.t * self.cfg.decision_interval_s >= self.cfg.load_stop_s
+        ):
+            return {cls: 0.0 for cls in self.cfg.classes}
+        return dict(self.cfg.fixed_load_mbps)
+
     def _update_loads(self) -> None:
         snapshot = self.workload.advance(
             self.t * self.cfg.decision_interval_s, self.cfg.decision_interval_s
         )
         self.load = dict(snapshot.offered_mbps)
         if self.cfg.fixed_load_mbps is not None:
-            self.load = dict(self.cfg.fixed_load_mbps)
+            self.load = self._fixed_load()
         self.workload_snapshot = snapshot
 
     def _update_queues(self, idx: int) -> None:

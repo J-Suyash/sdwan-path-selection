@@ -379,3 +379,56 @@ def test_matched_mode_metric_determinism_across_seeds(tmp_path):
     for row_a, row_b in zip(*tables):
         assert row_a["metric"] == row_b["metric"]
         assert row_a["value"] == row_b["value"]
+
+
+def test_load_stop_requires_fixed_load():
+    with pytest.raises(ValueError, match="load_stop_s requires fixed_load_mbps"):
+        SDWanConfig(load_stop_s=1.0)
+
+
+def test_drain_phase_termination_and_window(tmp_path):
+    # Saturated case with opt-in drain: load stops at duration_s (4 s),
+    # the 1.4e6 B queue drains in one step at 100 Mbps, and the episode
+    # ends by the declared termination rule.
+    scenario = _write_scenario(tmp_path, rate_mbps=200.0, capacity_mbps=100.0)
+    out = tmp_path / "out"
+    code = run_case(
+        scenario,
+        out_dir=out,
+        required_metrics=["loss_frac", "throughput_mbps"],
+        drain=True,
+    )
+    assert code == 0
+    rows = _read_csv(out / "emulator_metrics.csv")
+    for row in rows:
+        if row["metric"] == "loss_frac":
+            # Drops are unchanged (48.6e6 B over the 4 s send window);
+            # offered is 1e8 B (no load after t=4).
+            assert float(row["value"]) == pytest.approx(0.486)
+        else:
+            # Delivered includes the drained 1.4e6 B; window is 5 s.
+            assert float(row["value"]) == pytest.approx(51.4e6 * 8 / 1e6 / 5.0)
+    manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["drain_enabled"] is True
+    assert manifest["load_stop_s"] == 4.0
+    for window in manifest["windows"]:
+        assert window["drain_termination"] == "drained"
+        assert window["drain_steps_used"] == 1
+        assert window["steps_run"] == 5
+        assert window["measurement_window_s"] == 5.0
+        assert window["end_residual_occupancy_bytes"] < 1400.0
+
+
+def test_no_drain_by_default_preserves_semantics(tmp_path):
+    scenario = _write_scenario(tmp_path, rate_mbps=200.0, capacity_mbps=100.0)
+    out = tmp_path / "out"
+    code = run_case(scenario, out_dir=out, required_metrics=["loss_frac"])
+    assert code == 0
+    manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["drain_enabled"] is False
+    assert manifest["load_stop_s"] is None
+    for window in manifest["windows"]:
+        assert window["drain_termination"] == "none"
+        assert window["steps_run"] == 4
+        # Without drain the saturated queue stays full at episode end.
+        assert window["end_residual_occupancy_bytes"] > 1.0e6

@@ -89,6 +89,10 @@ class SDWanConfig:
     # rates. Neither is set by any default experiment.
     constant_series: dict[str, dict[str, float]] | None = None
     fixed_load_mbps: dict[str, float] | None = None
+    # load_stop_s: optional send-window end for matched runs. When set
+    # together with fixed_load_mbps, offered load drops to zero at this
+    # time and stays zero (a zero-load drain phase). Input-only change.
+    load_stop_s: float | None = None
 
     # No switching transient is assumed without measured calibration rows.
     # See data/switching_calibration_template.csv and docs/workload_model_spec.md.
@@ -179,6 +183,11 @@ class SDWanConfig:
                     raise ValueError(
                         f"fixed_load_mbps[{cls!r}] must be non-negative"
                     )
+        if self.load_stop_s is not None:
+            if self.fixed_load_mbps is None:
+                raise ValueError("load_stop_s requires fixed_load_mbps")
+            if self.load_stop_s < 0:
+                raise ValueError("load_stop_s must be non-negative")
         if not 0 < self.oneway_delay_factor <= 1:
             raise ValueError("oneway_delay_factor must be in (0, 1]")
         for underlay, rtt in self.fallback_rtt_ms.items():

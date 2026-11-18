@@ -158,6 +158,11 @@ LIMITATIONS = [
     "aggregate candidates, quality estimator_candidate_unvalidated; "
     "never comparator gate evidence; coverage.json keeps both metrics "
     "unsupported",
+    "drain phase is opt-in (--drain) until the owner adopts the D2 "
+    "endpoint definition: load stops at duration_s, the episode ends "
+    "when every queue holds less than one packet (termination "
+    "'drained') or at the 3x buffer/service bound ('bound_hit'), and "
+    "the actual measurement window is recorded per run",
 ]
 
 
@@ -171,7 +176,8 @@ def encode_action(assignment: dict[str, str], cfg: SDWanConfig) -> int:
 
 
 def matched_config(
-    scenario, workload_name: str, calibration_path: str | None
+    scenario, workload_name: str, calibration_path: str | None,
+    drain: bool = False,
 ) -> SDWanConfig:
     """Build the matched-mode config for one case scenario."""
     unknown = set(scenario.paths) - {"bb", "five_g", "leo"}
@@ -185,8 +191,27 @@ def matched_config(
             )
     fixed_load = {cls: 0.0 for cls in ("voice", "video", "interactive", "bulk")}
     fixed_load[wl.flow_type] = wl.rate_mbps
+    episode_seconds = int(wl.duration_s)
+    load_stop_s = None
+    if drain:
+        # Bounded drain extension (D2): after the send window the load
+        # drops to zero; the bound is 3 x max buffer / min service across
+        # every capacity the case can set (initial and event values).
+        max_buffer = max(
+            scenario.queue_limit_for(p) for p in scenario.paths
+        ) * wl.packet_bytes
+        capacities = [spec.capacity_mbps for spec in scenario.paths.values()]
+        capacities += [
+            e.capacity_mbps for e in scenario.events
+            if isinstance(e, CapacityEvent)
+        ]
+        min_capacity = min(c for c in capacities if c > 0)
+        drain_bound_s = 3.0 * max_buffer / (min_capacity * 1e6 / 8.0)
+        episode_seconds = math.ceil(wl.duration_s + drain_bound_s)
+        load_stop_s = float(wl.duration_s)
     return SDWanConfig(
-        episode_seconds=int(wl.duration_s),
+        episode_seconds=episode_seconds,
+        load_stop_s=load_stop_s,
         cap_mbps={p: spec.capacity_mbps for p, spec in scenario.paths.items()},
         queue_buffer_bytes={
             p: float(scenario.queue_limit_for(p) * wl.packet_bytes)
@@ -235,6 +260,7 @@ def run_case(
     seed: int = 0,
     required_metrics: list[str] | None = None,
     cases_path: str | Path | None = None,
+    drain: bool = False,
 ) -> int:
     """Run one matched case under fixed conditions. Returns an exit code:
 
@@ -286,7 +312,7 @@ def run_case(
             return 1
 
     try:
-        cfg = matched_config(scenario, wl_name, calibration_path)
+        cfg = matched_config(scenario, wl_name, calibration_path, drain=drain)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -321,6 +347,14 @@ def run_case(
         delay_series: list[float] = []
         jitter_series: list[float] = []
         end_residual = 0.0
+        steps_run = cfg.episode_steps
+        drain_termination = "none"
+        drain_steps_used = 0
+        stop_step = (
+            round(cfg.load_stop_s / cfg.decision_interval_s)
+            if cfg.load_stop_s is not None
+            else None
+        )
         collect_estimators = any(
             m in required_metrics for m in ESTIMATOR_CANDIDATE_METRICS
         )
@@ -344,10 +378,9 @@ def run_case(
                     delay_series.append(step_delay)
                 if math.isfinite(step_jitter):
                     jitter_series.append(step_jitter)
-            if t == cfg.episode_steps - 1:
-                end_residual = sum(
-                    q["occupancy_bytes"] for q in info["queue"].values()
-                )
+            end_residual = sum(
+                q["occupancy_bytes"] for q in info["queue"].values()
+            )
             offered = sum(q["offered_bytes"] for q in info["queue"].values())
             delivered = sum(q["delivered_bytes"] for q in info["queue"].values())
             dropped = sum(q["dropped_bytes"] for q in info["queue"].values())
@@ -356,9 +389,23 @@ def run_case(
                     totals[key][0] += offered
                     totals[key][1] += delivered
                     totals[key][2] += dropped
+            # D2 drain termination: with the load stopped, end the
+            # episode once every queue holds less than one packet.
+            if (
+                stop_step is not None
+                and t >= stop_step
+                and end_residual < wl.packet_bytes
+            ):
+                steps_run = t + 1
+                drain_termination = "drained"
+                drain_steps_used = t + 1 - stop_step
+                break
+        if stop_step is not None and drain_termination == "none":
+            drain_termination = "bound_hit"
+            drain_steps_used = steps_run - stop_step
 
         post_s = (cfg.episode_steps - event_step) * cfg.decision_interval_s
-        full_s = cfg.episode_steps * cfg.decision_interval_s
+        full_s = steps_run * cfg.decision_interval_s
         windows.append(
             {
                 "run_id": run_id,
@@ -372,6 +419,10 @@ def run_case(
                 # conditions: bytes still queued at episode end are
                 # neither delivered nor dropped in this accounting.
                 "end_residual_occupancy_bytes": end_residual,
+                "steps_run": steps_run,
+                "measurement_window_s": full_s,
+                "drain_termination": drain_termination,
+                "drain_steps_used": drain_steps_used,
             }
         )
         # Numeric comparator rows use the FULL-RUN window: the runner
@@ -555,6 +606,8 @@ def run_case(
                     "event_step": event_step,
                     "post_warmup_window_s": post_s,
                     "full_window_s": full_s,
+                    "drain_enabled": drain,
+                    "load_stop_s": cfg.load_stop_s,
                     "start_path": start_path,
                     "windows": windows,
                     "numeric_csv": metrics_name,
@@ -595,6 +648,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", default=None)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--cases", default=None)
+    parser.add_argument(
+        "--drain",
+        action="store_true",
+        help="append a zero-load drain phase (D2 endpoints; opt-in until "
+        "the owner adopts the definition)",
+    )
     args = parser.parse_args(argv)
     return run_case(
         args.scenario,
@@ -602,6 +661,7 @@ def main(argv: list[str] | None = None) -> int:
         out_dir=args.out,
         seed=args.seed,
         cases_path=args.cases,
+        drain=args.drain,
     )
 
 

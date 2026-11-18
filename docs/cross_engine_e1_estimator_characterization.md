@@ -59,16 +59,21 @@ transient cases are unstable under both and should not be compared as
 headline rows. Steady-state windows with declared weighting are the
 defensible comparison unit.
 
-Socket-level loss (measurement path). tcpdump captured all 75,001 sent
-and 55,608 server-NIC packets with 0 kernel drops, but the receiver app
-recorded 54,273. The 1,335 NIC-to-app drops contribute 1.78 pp of the
+NIC-to-app component (measurement path, mechanism UNVERIFIED). tcpdump
+captured all 75,001 sent and 55,608 server-NIC packets with 0 kernel
+drops, but the receiver app recorded 54,273. The 1,335 packets present
+at the NIC but absent from the app record contribute 1.78 pp of the
 runner's 27.637% loss_frac; the qdisc counted 19,393 drops (25.86%).
-Runner loss therefore includes a socket-buffer component the fluid
-model does not represent. Consequences: (i) matched loss comparisons
+The mechanism is not established: candidate causes include socket
+receive-path loss and early receiver exit at its idle timeout while
+tail packets were still queued (the queue held up to ~2.4 s of delay).
+Runner loss therefore includes a component the fluid model does not
+represent, whatever its cause. Consequences: (i) matched loss comparisons
 should use capture-level and qdisc-counter counts, with the app-level
 count kept as a reported separate basis; (ii) P1 (rate diagnostic)
-must not rely on app-level counts - the 1.78 pp socket effect would
-swamp the 0.95 pp separation between the 1428 and 1442 hypotheses.
+must not rely on app-level counts - the observed 1.78 pp NIC-to-app
+effect (mechanism unverified) would swamp the 0.95 pp separation
+between the 1428 and 1442 hypotheses.
 
 What E1 settles and what it does not. It quantifies the candidate
 aggregate forms' structural behavior on real queue dynamics and fixes
