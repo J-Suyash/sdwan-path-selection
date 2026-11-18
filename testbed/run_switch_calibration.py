@@ -26,6 +26,7 @@ import platform
 import shlex
 import shutil
 import subprocess
+import threading
 import sys
 import time
 from dataclasses import asdict, dataclass
@@ -193,6 +194,27 @@ def record_clock_sample(label: str, order_offset: float = 0.0) -> dict:
         "sampling_bracket_s": epoch_after - epoch_before,
         "sample_order_offset_s": order_offset,
     }
+
+
+def cadence_sampler(t0: float, stop_event: "threading.Event", samples: list[dict],
+                    lock: "threading.Lock", cadence_s: float = 1.0) -> None:
+    """Record one clock sample per cadence tick from t0 until stopped.
+
+    Runs in a daemon thread so during-send coverage does not depend on
+    where the main thread happens to be waiting. Each sample's own
+    monotonic timestamp is its truth; the label is its nominal tick.
+    """
+    k = 1
+    while True:
+        target = t0 + k * cadence_s
+        delay = target - time.monotonic()
+        if delay > 0 and stop_event.wait(delay):
+            return
+        with lock:
+            samples.append(record_clock_sample(f"cadence_{k * cadence_s:02.0f}s"))
+        k += 1
+        if stop_event.is_set():
+            return
 
 
 def write_clock_samples(path: Path, samples: list[dict]) -> None:
@@ -406,6 +428,16 @@ def run_one(
             time.sleep(0.01)
         t0 = json.loads(start_marker.read_text())["first_sent_monotonic_s"]
         clock_samples.append(record_clock_sample("at_first_send_marker"))
+        # During-send coverage: live cadence sampling from t0 until after
+        # t1, independent of where the main thread is waiting.
+        samples_lock = threading.Lock()
+        stop_sampling = threading.Event()
+        sampler = threading.Thread(
+            target=cadence_sampler,
+            args=(t0, stop_sampling, clock_samples, samples_lock),
+            daemon=True,
+        )
+        sampler.start()
         time.sleep(max(0.0, t0 + workload.warmup_s - time.monotonic()))
     else:
         time.sleep(workload.warmup_s)
@@ -426,19 +458,8 @@ def run_one(
         inspections = []
         for offset in inspection_offsets(window_spec):
             target = t0 + offset
-            while time.monotonic() < target - 1e-9:
-                # Declared cadence is one sample per second from t0.
-                cadence_count = sum(
-                    1 for s in clock_samples if s["label"].startswith("cadence_")
-                )
-                next_sample = t0 + cadence_count + 1
-                if time.monotonic() < min(target, next_sample):
-                    sleep_to = min(target, next_sample)
-                    time.sleep(max(0.0, sleep_to - time.monotonic()))
-                    if time.monotonic() >= next_sample - 1e-9:
-                        clock_samples.append(record_clock_sample(f"cadence_{next_sample - t0:02.0f}s"))
-                else:
-                    break
+            # Cadence samples come from the background sampler thread;
+            # this loop only waits for the inspection point.
             time.sleep(max(0.0, target - time.monotonic()))
             clock_samples.append(record_clock_sample(f"at_t0_plus_{offset:02d}s"))
             sample_started = time.monotonic()
@@ -463,6 +484,8 @@ def run_one(
                             "host_sampling_lateness_s": t1 - (t0 + inspections[-1]["nominal_offset_s"]),
                             "in_flight_caveat": "zero qdisc backlog is not proof that every dequeued packet reached the application"}
         clock_samples.append(record_clock_sample("after_t1"))
+        stop_sampling.set()
+        sampler.join(timeout=2.0)
         # Collect late arrivals separately, then filter the matched-window
         # summary at t1. This grace is NOT added to its denominator.
         time.sleep(0.5)
