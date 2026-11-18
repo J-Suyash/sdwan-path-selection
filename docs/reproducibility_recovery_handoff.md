@@ -42,6 +42,29 @@
   but not the emulator's residual 1500 B. Committed calibration
   artefacts are unaffected (testbed side); impact is limited to
   emulator-vs-testbed switching-transient comparability.
+  Method evidence (read-only, existing artefacts): both conventions
+  were introduced 2026-11-10 00:56 (emulator e41d64f, testbed 5b74c6f);
+  b325289 (15:31) fixed only the testbed's queue-limit conversion.
+  docs/workload_model_spec.md:73 names 'packets in flight' as a
+  nearest-neighbour covariate without defining its semantics or unit,
+  so neither reading is contractually wrong. Calibration ranges
+  (committed data/switching_calibration.csv bdf331a8 and _v2.csv
+  d7ee403c, 119 rows each): voice udp 4.84-14.64, video udp
+  12.59-38.07, interactive tcp 25.83-78.08, bulk tcp 110.71-334.64
+  packets (BDP with actual packet_bytes). Emulator query = backlog
+  bytes/1500: default buffers are cap_mbps*0.25 s/8 (bb/leo 6.25 MB,
+  five_g 9.375 MB), so query = frac*4166.7 (bb/leo) or frac*6250
+  (five_g); at the observed max occupancy frac 0.164 that is 683-1025
+  'packets', beyond the calibrated maximum 334.64; voice queries
+  leave the calibrated voice range once backlog exceeds ~22 kB
+  (14.64*1500 B) and fall below its minimum under ~7.3 kB.
+  The NN distance scale for this feature is median 31.25, so such
+  query values dominate the six-feature distance. The mismatch is
+  exercised only when a calibration CSV is supplied: default
+  switching_calibration_path=None (zero effects, calibrated=false);
+  scripts/decompose_sla_violations.py:103 and
+  scripts/reassess_delay_semantics.py:54 enable it via --calibrated.
+  Provenance of committed analysis CSVs wrt --calibrated unverified.
 - tc suffix convention sourced from iproute2 lib/json_print_math.c
   sprint_size (public main; installed package is 7.3.0-1.1 and matches
   on all 960 observed tokens, version match not proven): K/M/G are
